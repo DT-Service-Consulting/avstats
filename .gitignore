@@ -127,3 +127,7 @@ poetry.lock
 .poetry/
 
 # End of file
+avstats/Test.ipynb
+avstats/AvStats_Pipeline.ipynb
+avstats/.virtual_documents/Untitled.ipynb
+avstats/.virtual_documents/AvStats_Pipeline.ipynb
