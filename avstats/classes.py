@@ -1,4 +1,4 @@
-from avstats.imports import *
+from imports import *
 
 class DataCleaning:
     def __init__(self, unique_column):
@@ -22,9 +22,12 @@ class DataCleaning:
         # Check for duplicated rows based on the unique column
         duplicate_rows = df[df.duplicated(subset=self.unique_column, keep=False)]
         print(f"Number of total duplicated rows: {len(duplicate_rows)}")
+
+        # Print missing values by column
+        missing_by_column = df.isnull().sum()
         print("Missing values by column:")
-        print(df.isnull().sum())
-        
+        print(missing_by_column)
+
         return missing_values, duplicate_rows # Return missing values and duplicate rows DataFrame
 
 
