@@ -1,4 +1,4 @@
-from imports import *
+from avstats.imports import *
 
 class DataCleaning:
     def __init__(self, unique_column):
