@@ -19,7 +19,7 @@ class Multicollinearity:
         })
         return vif_data
 
-    def remove_high_vif_features(self, target_variable, threshold=10):
+    def remove_high_vif_features(self, target_variable, threshold=15):
         """
         Iteratively remove features with high VIF values until all remaining features have VIF below a threshold.
 
