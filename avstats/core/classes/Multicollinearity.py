@@ -3,8 +3,8 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 
 class Multicollinearity:
-    def __init__(self, dataframe):
-        self.df = dataframe
+    def __init__(self, df):
+        self.df = df
 
     def calculate_vif(self):
         """
@@ -30,20 +30,30 @@ class Multicollinearity:
         Returns:
         pd.DataFrame: A DataFrame with the target variable and features with VIF below the threshold.
         """
-        features = self.df.drop(columns=target_variable)
+        features = self.df.drop(columns=target_variable).copy()
 
         while True:
+            # Calculate VIF and handle cases where VIF calculation might return NaN
             vif_data = pd.DataFrame({
                 "feature": features.columns,
-                "VIF": [variance_inflation_factor(features.values, i) for i in range(features.shape[1])]
+                "VIF": [
+                    variance_inflation_factor(features.values, i)
+                    if features.iloc[:, i].var() != 0 else float('inf')
+                    for i in range(features.shape[1])
+                ]
             })
 
-            if (vif_data['VIF'] <= threshold).all():
-                print("No features above the VIF threshold.")
+            # Drop any rows in VIF DataFrame where VIF is NaN or infinite
+            vif_data = vif_data.dropna().replace([float('inf')], pd.NA).dropna()
+
+            if vif_data.empty or (vif_data['VIF'] <= threshold).all():
+                print("No features above the VIF threshold or no features left.")
                 break
 
+            # Remove the feature with the highest VIF value
             feature_to_remove = vif_data.loc[vif_data["VIF"].idxmax(), "feature"]
-            print(f"Removing feature: {feature_to_remove}")
+            print(f"Removing feature: {feature_to_remove} with VIF: {vif_data['VIF'].max()}")
             features = features.drop(columns=feature_to_remove)
 
+            # Return final DataFrame with target variable and remaining features
         return pd.concat([self.df[target_variable], features], axis=1)
