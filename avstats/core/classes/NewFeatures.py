@@ -1,5 +1,4 @@
 import pandas as pd
-from typing import Optional
 
 class NewFeatures:
     def __init__(self, uuid: str, dep_delay: int, sdt: pd.Timestamp, sat: pd.Timestamp, cargo: bool, private: bool):
