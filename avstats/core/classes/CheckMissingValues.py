@@ -1,8 +1,8 @@
 import pandas as pd
-
+from typing import Tuple
 
 class DataCleaning:
-    def __init__(self, unique_column: str):
+    def __init__(self, unique_column: str) -> None:
         """
         Initialize the DataCleaning class with a unique column.
 
@@ -11,7 +11,7 @@ class DataCleaning:
         """
         self.unique_column = unique_column
 
-    def check_missing_and_duplicates(self, df: pd.DataFrame):
+    def check_missing_and_duplicates(self, df: pd.DataFrame) -> Tuple[int, pd.DataFrame]:
         """
         Check for missing values and duplicated rows in a DataFrame.
 

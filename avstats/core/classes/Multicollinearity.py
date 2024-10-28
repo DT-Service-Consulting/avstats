@@ -1,12 +1,12 @@
 import pandas as pd
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-
+from typing import Union
 
 class Multicollinearity:
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame) -> None:
         self.df = df
 
-    def calculate_vif(self):
+    def calculate_vif(self) -> pd.DataFrame:
         """
         Calculate Variance Inflation Factor (VIF) for each feature to assess multicollinearity.
 
@@ -19,7 +19,7 @@ class Multicollinearity:
         })
         return vif_data
 
-    def remove_high_vif_features(self, target_variable, threshold=15):
+    def remove_high_vif_features(self, target_variable: str, threshold: Union[int, float] = 15) -> pd.DataFrame:
         """
         Iteratively remove features with high VIF values until all remaining features have VIF below a threshold.
 

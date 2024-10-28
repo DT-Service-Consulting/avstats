@@ -29,7 +29,7 @@ def count_delayed_flights(df: pd.DataFrame, lower: int, upper: int = None) -> in
         return df[(df['dep_delay'] > lower) & (df['dep_delay'] <= upper)]['uuid'].count()
     return df[df['dep_delay'] > lower]['uuid'].count()
 
-def calculate_time_window_percentages(df):
+def calculate_time_window_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the total number and proportions of flights in each time window for departures and arrivals.
 
@@ -54,7 +54,7 @@ def calculate_time_window_percentages(df):
         'Arrival Percentages (%)': arr_percentages
     }).set_index('Time Window').fillna(0)  # Fill NaN values with 0 for categories that have no flights
 
-def flight_summary_by_time_window(df, time_window_col, summarize_delays=False):
+def flight_summary_by_time_window(df: pd.DataFrame, time_window_col: str, summarize_delays: bool = False) -> pd.DataFrame:
     """
     Generate a flight summary by time window, optionally summarizing delay statistics.
 
@@ -80,7 +80,7 @@ def flight_summary_by_time_window(df, time_window_col, summarize_delays=False):
 
     return flight_summary
 
-def calculate_on_time_performance(df):
+def calculate_on_time_performance(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate on-time performance for each flight category.
 
@@ -98,7 +98,7 @@ def calculate_on_time_performance(df):
         str) + '%'
     return on_time_performance[['Flight Category', 'Total Flights', 'On-Time Performance']]
 
-def calculate_flight_percentages(df):
+def calculate_flight_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the percentage of flights by category (Cargo, Commercial, Private).
 
@@ -121,7 +121,7 @@ def calculate_flight_percentages(df):
     })
     return percentages_df
 
-def get_status_summary(df):
+def get_status_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
     Summarize the status of flights by counting occurrences and calculating proportions.
 
@@ -139,7 +139,7 @@ def get_status_summary(df):
     })
     return status_summary
 
-def calculate_average_delay(df):
+def calculate_average_delay(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the average departure delay for each airline and route.
 

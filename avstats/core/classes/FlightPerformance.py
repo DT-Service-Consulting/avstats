@@ -4,7 +4,7 @@ from core.utils import calc_percentage, count_delayed_flights
 
 
 class FlightPerformance:
-    def __init__(self, dataframe: pd.DataFrame):
+    def __init__(self, dataframe: pd.DataFrame) -> None:
         """
         Initialize the FlightPerformance class with a DataFrame.
 
