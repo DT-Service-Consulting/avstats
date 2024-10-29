@@ -28,13 +28,7 @@ class DataCleaning:
             raise ValueError(f"Column '{self.unique_column}' does not exist in DataFrame")
 
         missing_values = df.isna().sum().sum()
-        print(f"Number of total missing values: {missing_values}")
-
         duplicate_rows = df[df.duplicated(subset=self.unique_column, keep=False)]
-        print(f"Number of total duplicated rows: {len(duplicate_rows)}")
-
         missing_by_column = df.isnull().sum()
-        print("Missing values by column:")
-        print(missing_by_column)
 
         return missing_values, duplicate_rows

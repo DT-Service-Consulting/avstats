@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from avstats.core.classes import CheckMissingValues
+from avstats.core.classes.CheckMissingValues import DataCleaning
 
 
 @pytest.fixture
@@ -10,7 +10,7 @@ def sample_data():
         'value': [10, 20, 20, None, 50]
     }
     df = pd.DataFrame(data)
-    cleaner = CheckMissingValues(unique_column='id')
+    cleaner = DataCleaning(unique_column='id')
     return df, cleaner
 
 
