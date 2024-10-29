@@ -24,23 +24,21 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry (Linux)
+    - name: Install Poetry on Linux
       if: runner.os != 'Windows'
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
-        export PATH="$HOME/.local/bin:$PATH"
+        echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-    - name: Install Poetry (Windows)
+    - name: Install Poetry on Windows
       if: runner.os == 'Windows'
       run: |
-        (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
-        $env:Path += ";$env:USERPROFILE\.local\bin"
+        winget install -e --id Python.Poetry
+        echo "PATH=$env:LOCALAPPDATA\Programs\Python\Poetry\bin;$env:PATH" >> $GITHUB_ENV
       shell: powershell
 
     - name: Install dependencies
       run: poetry install
-      shell: bash
 
     - name: Run tests
       run: poetry run pytest
-      shell: bash
