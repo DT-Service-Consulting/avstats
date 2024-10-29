@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import List, Tuple, Dict
-from core.general_utils import calc_percentage, count_delayed_flights
+from avstats.core.general_utils import calc_percentage, count_delayed_flights
 
 
 class FlightPerformance:

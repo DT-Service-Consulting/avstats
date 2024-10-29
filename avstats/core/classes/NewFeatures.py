@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class NewFeatures:
     def __init__(self, uuid: str, dep_delay: int, sdt: pd.Timestamp, sat: pd.Timestamp, cargo: bool, private: bool):
         self.uuid = uuid

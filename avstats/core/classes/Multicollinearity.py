@@ -2,6 +2,7 @@ import pandas as pd
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from typing import Union
 
+
 class Multicollinearity:
     def __init__(self, df: pd.DataFrame) -> None:
         self.df = df
