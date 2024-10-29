@@ -14,20 +14,24 @@ def sample_data():
     return df, cleaner
 
 
-def test_check_missing_values(sample_data):
+@pytest.fixture
+def clean_data(sample_data):
     df, cleaner = sample_data
-    missing_values, _ = cleaner.check_missing_and_duplicates(df)
+    missing_values, duplicate_rows, missing_by_column = cleaner.check_missing_and_duplicates(df)
+    return missing_values, duplicate_rows, missing_by_column
+
+
+def test_check_missing_values(clean_data):
+    missing_values, duplicate_rows, missing_by_column = clean_data
     assert missing_values == 1, "Should be 1 missing value"
 
 
-def test_check_duplicate_rows(sample_data):
-    df, cleaner = sample_data
-    _, duplicate_rows = cleaner.check_missing_and_duplicates(df)
+def test_check_duplicate_rows(clean_data):
+    missing_values, duplicate_rows, missing_by_column = clean_data
     assert len(duplicate_rows) == 2, "Should be 2 duplicated rows"
 
 
-def test_return_types(sample_data):
-    df, cleaner = sample_data
-    missing_values, duplicate_rows = cleaner.check_missing_and_duplicates(df)
+def test_return_types(clean_data):
+    missing_values, duplicate_rows, missing_by_column = clean_data
     assert isinstance(missing_values, int), "Missing values should be an integer"
     assert isinstance(duplicate_rows, pd.DataFrame), "Duplicate rows should be a DataFrame"

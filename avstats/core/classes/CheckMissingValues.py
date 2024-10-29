@@ -1,5 +1,7 @@
 import pandas as pd
-from typing import Tuple
+from typing import Tuple, Any
+
+from pandas import Series, DataFrame
 
 
 class DataCleaning:
@@ -12,7 +14,7 @@ class DataCleaning:
         """
         self.unique_column = unique_column
 
-    def check_missing_and_duplicates(self, df: pd.DataFrame) -> Tuple[int, pd.DataFrame]:
+    def check_missing_and_duplicates(self, df: pd.DataFrame) -> tuple[Any, Any, Any]:
         """
         Check for missing values and duplicated rows in a DataFrame.
 
@@ -23,6 +25,7 @@ class DataCleaning:
         tuple: A tuple containing:
             - missing_values (int): The total number of missing values.
             - duplicate_rows (pd.DataFrame): The DataFrame of duplicated rows.
+            - missing_by_column (pd.Series): The count of missing values by column.
         """
         if self.unique_column not in df.columns:
             raise ValueError(f"Column '{self.unique_column}' does not exist in DataFrame")
@@ -31,4 +34,4 @@ class DataCleaning:
         duplicate_rows = df[df.duplicated(subset=self.unique_column, keep=False)]
         missing_by_column = df.isnull().sum()
 
-        return missing_values, duplicate_rows
+        return missing_values, duplicate_rows, missing_by_column
