@@ -1,7 +1,7 @@
 import pandas as pd
 
 class NewFeatures:
-    def __init__(self, uuid, dep_delay, sdt, sat, cargo, private):
+    def __init__(self, uuid: str, dep_delay: int, sdt: pd.Timestamp, sat: pd.Timestamp, cargo: bool, private: bool):
         self.uuid = uuid
         self.dep_delay = dep_delay
         self.sdt = sdt
@@ -9,7 +9,7 @@ class NewFeatures:
         self.cargo = cargo
         self.private = private
 
-    def categorize_flight(self):
+    def categorize_flight(self) -> str:
         """
         Categorize the flight type as 'Cargo', 'Private', or 'Commercial'.
 
@@ -23,7 +23,7 @@ class NewFeatures:
         else:
             return 'Commercial'
 
-    def get_time_window(self, time_type='departure'):
+    def get_time_window(self, time_type: str = 'departure') -> str:
         """
         Determine the time window of the flight (Morning, Afternoon, Evening).
 

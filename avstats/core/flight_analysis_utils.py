@@ -1,35 +1,16 @@
+"""
+flight_analysis_utils.py - Specified utility functions
+
+This file contains utility functions specifically made for analyzing flight data as part of the AvStats project.
+They focus on calculations related to flight performance metrics, including delay summaries, on-time performance,
+and flight category percentages.
+By separating these functions from those in the utils.py file, we improve the readability and maintainability of
+the code, which allows for modifications to be made without affecting the general utility functions
+"""
+
 import pandas as pd
 
-def calc_percentage(part: int, whole: int) -> float:
-    """
-    Calculate the percentage of part over whole.
-
-    Parameters:
-    part (int): The numerator value.
-    whole (int): The denominator value.
-
-    Returns:
-    float: The calculated percentage.
-    """
-    return (part / whole) * 100 if whole > 0 else 0
-
-def count_delayed_flights(df: pd.DataFrame, lower: int, upper: int = None) -> int:
-    """
-    Count flights that are delayed within a specified range.
-
-    Parameters:
-    df (pd.DataFrame): The DataFrame containing flight data.
-    lower (int): The lower bound for delay in minutes.
-    upper (int, optional): The upper bound for delay in minutes. If not provided, no upper limit is applied.
-
-    Returns:
-    int: The number of delayed flights within the specified range.
-    """
-    if upper:
-        return df[(df['dep_delay'] > lower) & (df['dep_delay'] <= upper)]['uuid'].count()
-    return df[df['dep_delay'] > lower]['uuid'].count()
-
-def calculate_time_window_percentages(df):
+def calculate_time_window_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the total number and proportions of flights in each time window for departures and arrivals.
 
@@ -54,7 +35,7 @@ def calculate_time_window_percentages(df):
         'Arrival Percentages (%)': arr_percentages
     }).set_index('Time Window').fillna(0)  # Fill NaN values with 0 for categories that have no flights
 
-def flight_summary_by_time_window(df, time_window_col, summarize_delays=False):
+def flight_summary_by_time_window(df: pd.DataFrame, time_window_col: str, summarize_delays: bool = False) -> pd.DataFrame:
     """
     Generate a flight summary by time window, optionally summarizing delay statistics.
 
@@ -80,7 +61,7 @@ def flight_summary_by_time_window(df, time_window_col, summarize_delays=False):
 
     return flight_summary
 
-def calculate_on_time_performance(df):
+def calculate_on_time_performance(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate on-time performance for each flight category.
 
@@ -98,7 +79,7 @@ def calculate_on_time_performance(df):
         str) + '%'
     return on_time_performance[['Flight Category', 'Total Flights', 'On-Time Performance']]
 
-def calculate_flight_percentages(df):
+def calculate_flight_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the percentage of flights by category (Cargo, Commercial, Private).
 
@@ -121,7 +102,7 @@ def calculate_flight_percentages(df):
     })
     return percentages_df
 
-def get_status_summary(df):
+def get_status_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
     Summarize the status of flights by counting occurrences and calculating proportions.
 
@@ -139,7 +120,7 @@ def get_status_summary(df):
     })
     return status_summary
 
-def calculate_average_delay(df):
+def calculate_average_delay(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the average departure delay for each airline and route.
 
