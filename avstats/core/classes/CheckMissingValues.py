@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Tuple
 
+
 class DataCleaning:
     def __init__(self, unique_column: str) -> None:
         """

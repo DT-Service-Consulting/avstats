@@ -10,6 +10,7 @@ the code, which allows for modifications to be made without affecting the genera
 
 import pandas as pd
 
+
 def calculate_time_window_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the total number and proportions of flights in each time window for departures and arrivals.
@@ -35,7 +36,9 @@ def calculate_time_window_percentages(df: pd.DataFrame) -> pd.DataFrame:
         'Arrival Percentages (%)': arr_percentages
     }).set_index('Time Window').fillna(0)  # Fill NaN values with 0 for categories that have no flights
 
-def flight_summary_by_time_window(df: pd.DataFrame, time_window_col: str, summarize_delays: bool = False) -> pd.DataFrame:
+
+def flight_summary_by_time_window(df: pd.DataFrame, time_window_col: str,
+                                  summarize_delays: bool = False) -> pd.DataFrame:
     """
     Generate a flight summary by time window, optionally summarizing delay statistics.
 
@@ -46,20 +49,23 @@ def flight_summary_by_time_window(df: pd.DataFrame, time_window_col: str, summar
     Returns:
     pd.DataFrame: A DataFrame with flight counts and delay percentages by time window.
     """
-    total_flight_count = df.groupby(time_window_col).size().reset_index(name='total_flights')  # Count total flights by time window
+    total_flight_count = df.groupby(time_window_col).size().reset_index(
+        name='total_flights')  # Count total flights by time window
 
     if summarize_delays:
         delayed_flights = df[df['dep_delay_15'] == 1].groupby(time_window_col).size().reset_index(
             name='delayed_flights')
         flight_summary = pd.merge(total_flight_count, delayed_flights, on=time_window_col, how='left').fillna(0)
         flight_summary[f'{time_window_col}_proportion_delayed'] = flight_summary['delayed_flights'] / \
-                                                                    flight_summary['total_flights']
+                                                                  flight_summary['total_flights']
         flight_summary[f'{time_window_col}_percentage_delayed'] = ((flight_summary['delayed_flights'] /
-                                                                    flight_summary['total_flights'] * 100).round(2)).astype(str) + '%'
+                                                                    flight_summary['total_flights'] * 100).round(
+            2)).astype(str) + '%'
     else:
         flight_summary = total_flight_count
 
     return flight_summary
+
 
 def calculate_on_time_performance(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -74,10 +80,11 @@ def calculate_on_time_performance(df: pd.DataFrame) -> pd.DataFrame:
         'on_time_15'].mean().reset_index()  # Calculate on-time performance for each flight type
     on_time_performance.columns = ['Flight Category', 'On-Time Performance']
     on_time_performance = pd.merge(on_time_performance, total_flights, on='Flight Category',
-                                    how='left')  # Merge total flights with on-time performance
+                                   how='left')  # Merge total flights with on-time performance
     on_time_performance['On-Time Performance'] = (on_time_performance['On-Time Performance'] * 100).round(2).astype(
         str) + '%'
     return on_time_performance[['Flight Category', 'Total Flights', 'On-Time Performance']]
+
 
 def calculate_flight_percentages(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -102,6 +109,7 @@ def calculate_flight_percentages(df: pd.DataFrame) -> pd.DataFrame:
     })
     return percentages_df
 
+
 def get_status_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
     Summarize the status of flights by counting occurrences and calculating proportions.
@@ -119,6 +127,7 @@ def get_status_summary(df: pd.DataFrame) -> pd.DataFrame:
         'Proportions (%)': rounded_proportions.values
     })
     return status_summary
+
 
 def calculate_average_delay(df: pd.DataFrame) -> pd.DataFrame:
     """
