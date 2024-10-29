@@ -10,7 +10,10 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - name: Checkout code
@@ -27,6 +30,8 @@ jobs:
 
     - name: Install dependencies
       run: poetry install
+      shell: bash
 
     - name: Run tests
       run: poetry run pytest
+      shell: bash
