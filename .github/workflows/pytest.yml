@@ -24,9 +24,21 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry
+    - name: Install Poetry (Linux)
+      if: runner.os != 'Windows'
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
+
+    - name: Install Poetry (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+    - name: Add Poetry to PATH (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        $env:Path += ";$env:USERPROFILE\.poetry\bin"
+      shell: powershell
 
     - name: Install dependencies
       run: poetry install
@@ -35,3 +47,20 @@ jobs:
     - name: Run tests
       run: poetry run pytest
       shell: bash
+
+
+    - name: Install Poetry (Linux)
+      if: runner.os != 'Windows'
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+
+    - name: Install Poetry (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+    - name: Add Poetry to PATH (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        $env:Path += ";$env:USERPROFILE\.poetry\bin"
+      shell: powershell
