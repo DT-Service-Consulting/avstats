@@ -10,10 +10,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -24,28 +21,13 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install Poetry on Linux
-      if: runner.os != 'Windows'
+    - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
-        echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-
-    - name: Install Poetry on Windows
-      if: runner.os == 'Windows'
-      run: |
-        winget install -e --id Python.Poetry
-        echo "PATH=$env:LOCALAPPDATA\Programs\Python\Poetry\bin;$env:PATH" >> $GITHUB_ENV
-      shell: powershell
-
-    - name: Configure Poetry
-      run: |
-        poetry config virtualenvs.in-project true
-        poetry config installer.max-parallel 1
 
     - name: Install dependencies
-      run: poetry install --no-root
+      run: poetry install
 
     - name: Run tests
       run: poetry run pytest
-
-  
+      
