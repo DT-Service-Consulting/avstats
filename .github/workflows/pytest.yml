@@ -37,8 +37,15 @@ jobs:
         echo "PATH=$env:LOCALAPPDATA\Programs\Python\Poetry\bin;$env:PATH" >> $GITHUB_ENV
       shell: powershell
 
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.in-project true
+        poetry config installer.max-parallel 1
+
     - name: Install dependencies
-      run: poetry install
+      run: poetry install --no-root
 
     - name: Run tests
       run: poetry run pytest
+
+  
