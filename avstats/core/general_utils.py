@@ -35,5 +35,5 @@ def count_delayed_flights(df: pd.DataFrame, lower: int, upper: int = None) -> in
     int: The number of delayed flights within the specified range.
     """
     if upper:
-        return df[(df['dep_delay'] > lower) & (df['dep_delay'] <= upper)]['uuid'].count()
-    return df[df['dep_delay'] > lower]['uuid'].count()
+        return df[(df['dep_delay_15'] > lower) & (df['dep_delay_15'] <= upper)]['uuid'].count()
+    return df[df['dep_delay_15'] > lower]['uuid'].count()
