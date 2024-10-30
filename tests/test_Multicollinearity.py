@@ -6,10 +6,10 @@ from avstats.core.classes.Multicollinearity import Multicollinearity
 @pytest.fixture
 def sample_data():
     data = {
-        'feature1': [1, 2, 3, 4, 5],
-        'feature2': [2, 4, 6, 8, 10],
-        'feature3': [5, 6, 7, 8, 9],
-        'target': [1, 0, 1, 0, 1]
+        'target': [1, 2, 3, 4, 5],
+        'feature1': [4, 2, 1, 3, 5],
+        'feature2': [4, 2, 1, 3, 5],
+        'feature3': [5, 4, 3, 2, 1]
     }
     df = pd.DataFrame(data)
     return df
@@ -22,7 +22,7 @@ def multicollinearity(sample_data):
 
 def test_calculate_vif(multicollinearity):
     result = multicollinearity.calculate_vif()
-    expected_features = ['feature1', 'feature2', 'feature3', 'target']
+    expected_features = ['target', 'feature1', 'feature2', 'feature3']
     assert list(result[
                     'feature']) == expected_features, f"Expected: {expected_features}, got {list(result['feature'])}"
     assert all(result['VIF'] >= 1), "VIF values should be greater than or equal to 1"

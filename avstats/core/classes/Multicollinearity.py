@@ -34,7 +34,6 @@ class Multicollinearity:
         features = self.df.drop(columns=target_variable).copy()
 
         while True:
-            # Calculate VIF and handle cases where VIF calculation might return NaN
             vif_data = pd.DataFrame({
                 "feature": features.columns,
                 "VIF": [
@@ -44,7 +43,16 @@ class Multicollinearity:
                 ]
             })
 
-            # Drop any rows in VIF DataFrame where VIF is NaN or infinite
+            # Debug: print the VIF values
+            print("VIF Data:\n", vif_data)
+
+            # Remove features with infinite VIF
+            infinite_vif_features = vif_data[vif_data['VIF'] == float('inf')]['feature']
+            if not infinite_vif_features.empty:
+                print(f"Removing features with infinite VIF: {list(infinite_vif_features)}")
+                features = features.drop(columns=infinite_vif_features)
+
+            # Drop rows in VIF DataFrame where VIF is NaN or infinite
             vif_data = vif_data.dropna().replace([float('inf')], pd.NA).dropna()
 
             if vif_data.empty or (vif_data['VIF'] <= threshold).all():
@@ -56,5 +64,4 @@ class Multicollinearity:
             print(f"Removing feature: {feature_to_remove} with VIF: {vif_data['VIF'].max()}")
             features = features.drop(columns=feature_to_remove)
 
-            # Return final DataFrame with target variable and remaining features
         return pd.concat([self.df[target_variable], features], axis=1)
