@@ -35,17 +35,20 @@ def weather_data_class(sample_flight_data):
 @pytest.fixture
 def mock_fetch():
     with patch("meteostat.Daily.fetch", return_value=DataFrame({
-        'time': [datetime(2023, 1, 1), datetime(2023, 1, 2)],
-        'tavg': [5, 10],
-        'tmin': [0, 5],
-        'tmax': [10, 15],
-        'prcp': [0, 0.1],
-        'snow': [0, 0],
-        'wdir': [180, 270],
-        'wspd': [10, 15],
-        'wpgt': [20, 25],
-        'pres': [1015, 1018],
-        'tsun': [100, 200]
+        'time': [datetime(2023, 1, 1), datetime(2023, 1, 2), datetime(2023, 1, 1), datetime(2023, 1, 2)],
+        'tavg': [5, 10, 5, 10],
+        'tmin': [0, 5, 0, 5],
+        'tmax': [10, 15, 10, 15],
+        'prcp': [0, 0.1, 0, 0.1],
+        'snow': [0, 0, 0, 0],
+        'wdir': [180, 270, 180, 270],
+        'wspd': [10, 15, 10, 15],
+        'wpgt': [20, 25, 20, 25],
+        'pres': [1015, 1018, 1015, 1018],
+        'tsun': [100, 200, 100, 200],
+        'lat': [40.6413, 51.4700, 37.6188056, 25.2532],
+        'lon': [-73.7781, -0.4543, -122.3754167, 55.3657],
+        'iata_code': ['JFK', 'LHR', 'SFO', 'DXB']
     })) as m:
         yield m
 
@@ -72,14 +75,14 @@ def test_fetch_weather_data(mock_fetch, weather_data_class):
     # Assuming assign_coordinates should create the dep_lat and dep_lon columns
     weather_data_class.assign_coordinates()
     weather_data_class.df = DataFrame({
-        'dep_lat': [50.8503, 50.8503],  # Example latitudes
-        'dep_lon': [4.3517, 4.3517],  # Example longitudes
-        'dep_iata_code': ['BRU', 'BRU'],
+        'dep_lat': [40.6413, 51.4700],  # Example latitudes
+        'dep_lon': [-73.7781, -0.4543],  # Example longitudes
+        'dep_iata_code': ['JFK', 'LHR'],
         'adt': [datetime(2023, 1, 1), datetime(2023, 1, 2)],  # Example arrival dates
         'aat': [datetime(2023, 1, 1), datetime(2023, 1, 2)],  # Example departure dates
-        'arr_lat': [51.5074, 51.5074],  # Example arrival latitudes
-        'arr_lon': [-0.1278, -0.1278],  # Example arrival longitudes
-        'arr_iata_code': ['LON', 'LON']  # Example arrival IATA codes
+        'arr_lat': [37.6188056, 25.2532],  # Example arrival latitudes
+        'arr_lon': [-122.3754167, 55.3657],  # Example arrival longitudes
+        'arr_iata_code': ['SFO', 'DXB']  # Example arrival IATA codes
     })
     weather_data_class.fetch_weather_data()
 
@@ -97,9 +100,12 @@ def test_merge_weather_with_flights(mock_fetch, weather_data_class):
     assert 'prcp_dep' in merged_df
     assert 'prcp_arr' in merged_df
 
-    # Debug print to check NaN values in `tavg_dep`
+    # Debug print to check NaN values in `tavg_dep` and `tavg_arr`
     print("tavg_dep column null values:", merged_df['tavg_dep'].isnull().sum())
     print("Sample of merged tavg_dep values:", merged_df['tavg_dep'].head())
+
+    print("tavg_arr column null values:", merged_df['tavg_arr'].isnull().sum())
+    print("Sample of merged tavg_arr values:", merged_df['tavg_arr'].head())
 
     assert merged_df['tavg_dep'].notnull().all(), "Some values in 'tavg_dep' are NaN"
     assert merged_df['tavg_arr'].notnull().all(), "Some values in 'tavg_arr' are NaN"
