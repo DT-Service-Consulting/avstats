@@ -92,15 +92,13 @@ class WeatherData:
                 weather_data = Daily(point, start_date, end_date).fetch()
 
                 if not weather_data.empty:
-                    # Drop existing index levels to avoid conflicts
-                    weather_data = weather_data.reset_index(drop=True)
+                    # If the weather data doesn't have a datetime column, check the index
+                    if weather_data.index.name != 'time' and weather_data.index.name != 'date':
+                        print(f"Warning: No 'time' or 'date' column found for {iata_code}, using index as date.")
+                        weather_data['time'] = weather_data.index  # Use the index as 'time' if necessary.
 
-                    # Explicitly convert 'time' or 'date' column to datetime after fetching
-                    if 'time' in weather_data.columns:
-                        weather_data['time'] = pd.to_datetime(weather_data['time'])
-                    elif 'date' in weather_data.columns:
-                        weather_data['date'] = pd.to_datetime(weather_data['date'])
 
+                    weather_data = weather_data.reset_index(drop=False)  # Reset only after ensuring time column
                     weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
                     self.weather_records.append(weather_data)
 
@@ -128,6 +126,8 @@ class WeatherData:
         # Ensure that 'adt' and 'aat' columns in df are also date-only for merging
         self.df['adt_date'] = pd.to_datetime(self.df['adt']).dt.date
         self.df['aat_date'] = pd.to_datetime(self.df['aat']).dt.date
+
+        print("adt and aat were successfully turned into datetime format.")
 
         # Merge departure city weather data
         dep_weather = self.weather_df.rename(columns={
