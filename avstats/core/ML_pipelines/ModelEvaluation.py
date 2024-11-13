@@ -39,6 +39,6 @@ class ModelEvaluation:
         array: Cross-validation scores.
         """
         cv_metrics = cross_val_score(model, self.x_train, self.y_train, cv=cv)
-        print(f"Cross-validation Metrics: {cv_metrics}")
+        print(f"Cross-validation Metric: {cv_metrics}")
 
         return cv_metrics

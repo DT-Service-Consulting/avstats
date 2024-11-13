@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from avstats.core.classes.Multicollinearity import Multicollinearity
+from avstats.core.ML_pipelines.Multicollinearity import Multicollinearity
 
 
 @pytest.fixture

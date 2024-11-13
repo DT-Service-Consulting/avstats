@@ -59,9 +59,13 @@ class WeatherData:
         return self.df
 
     def fetch_weather_data(self):
+        # Ensure datetime format for all date fields
+        self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
+        self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
+
         # Extract unique dates for both departure and arrival
         unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
-        unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates]
+        unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates if pd.notnull(d)]
         start_date, end_date = min(unique_dates), max(unique_dates)
 
         # Extract unique departure and arrival coordinates
@@ -84,20 +88,12 @@ class WeatherData:
         # Iterate over unique coordinates, fetching for the full date range
         for i, row in all_coords.iterrows():
             lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
-
-            # Fetch weather data without date parsing
             point = Point(lat, lon)
 
             try:
                 weather_data = Daily(point, start_date, end_date).fetch()
-
                 if not weather_data.empty:
-                    # If the weather data doesn't have a datetime column, check the index
-                    if weather_data.index.name != 'time' and weather_data.index.name != 'date':
-                        print(f"Warning: No 'time' or 'date' column found for {iata_code}, using index as date.")
-                        weather_data['time'] = weather_data.index  # Use the index as 'time' if necessary.
-
-
+                    #weather_data['time'] = weather_data.index  # Use the index as 'time' if necessary.
                     weather_data = weather_data.reset_index(drop=False)  # Reset only after ensuring time column
                     weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
                     self.weather_records.append(weather_data)
@@ -121,18 +117,16 @@ class WeatherData:
             pd.DataFrame: Merged DataFrame containing flight and weather information.
         """
         # Ensure 'time' column in weather_df is in datetime format for merging
-        self.weather_df['time'] = self.weather_df['time'].dt.date
+        self.weather_df['time'] = pd.to_datetime(self.weather_df['time']).dt.date
+        self.df['adt_date'] = self.df['adt'].dt.date
+        self.df['aat_date'] = self.df['aat'].dt.date
 
-        # Ensure that 'adt' and 'aat' columns in df are also date-only for merging
-        self.df['adt_date'] = pd.to_datetime(self.df['adt']).dt.date
-        self.df['aat_date'] = pd.to_datetime(self.df['aat']).dt.date
 
         print("adt and aat were successfully turned into datetime format.")
 
         # Merge departure city weather data
         dep_weather = self.weather_df.rename(columns={
-            'time': 'adt_date',
-            'iata_code': 'dep_iata_code',
+            'time': 'adt_date', 'iata_code': 'dep_iata_code',
             'tavg': 'tavg_dep', 'tmin': 'tmin_dep', 'tmax': 'tmax_dep', 'prcp': 'prcp_dep',
             'snow': 'snow_dep', 'wdir': 'wdir_dep', 'wspd': 'wspd_dep', 'wpgt': 'wpgt_dep',
             'pres': 'pres_dep', 'tsun': 'tsun_dep', 'lat': 'dep_lat', 'lon': 'dep_lon'
@@ -141,8 +135,7 @@ class WeatherData:
 
         # Merge arrival city weather data
         arr_weather = self.weather_df.rename(columns={
-            'time': 'aat_date',
-            'iata_code': 'arr_iata_code',
+            'time': 'aat_date', 'iata_code': 'arr_iata_code',
             'tavg': 'tavg_arr', 'tmin': 'tmin_arr', 'tmax': 'tmax_arr', 'prcp': 'prcp_arr',
             'snow': 'snow_arr', 'wdir': 'wdir_arr', 'wspd': 'wspd_arr', 'wpgt': 'wpgt_arr',
             'pres': 'pres_arr', 'tsun': 'tsun_arr', 'lat': 'arr_lat', 'lon': 'arr_lon'
