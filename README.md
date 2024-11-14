@@ -7,25 +7,24 @@ This repository provides a comprehensive pipeline for forecasting flight delays,
 
 ## Table of Contents
 
-- [Project Overview](#projectoverview)
+- [Project](#project)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Notebooks](#notebooks)
-- - [Notebook 1 - Data Cleaning & EDA](#notebook1)
-  - [Notebook 2 - Modeling and Predictions](#notebook2)
+- - [Notebook 1 - Data Cleaning & EDA](#EDANotebook)
+  - [Notebook 2 - Modeling and Predictions](#MLNotebook)
 - [Usage](#usage)
-- [Running Tests](#test)
+- [Running Tests](#tests)
 - [License](#license)
 
 
-## Project Overview
+## Project
 
 This project is part of an analysis and predictive modeling series focused on U.S. small airlines, leveraging various data sources. It aims to:
-
-    Clean and preprocess flight data, integrating additional weather and passenger information.
-    Explore and visualize flight data to uncover insights into delay patterns and key features.
-    Develop and optimize machine learning models to forecast delays with high accuracy.
+    - Clean and preprocess flight data, integrating additional weather and passenger information.
+    - Explore and visualize flight data to uncover insights into delay patterns and key features.
+    - Develop and optimize machine learning models to forecast delays with high accuracy.
     
 
 ## Features
@@ -90,36 +89,40 @@ To use this package:
 
 The project includes two main Jupyter notebooks that guide you through data preparation, EDA, and model development.
 
-### Notebook 1 - Data Cleaning & EDA
+### EDANotebook
+
+*Notebook 1 - Data Cleaning & EDA*
 
 This notebook handles the initial stages of data processing and analysis.
 
-1. **Data Cleaning & Processing**:
-- Detects duplicates and missing values, creates new features, and cleans data from multiple sources.
-- Adds weather data (from the Meteostat library) based on route coordinates and date.
-- Integrates passenger data and merges all relevant information.
+- **Data Cleaning & Processing**:
+    - Detects duplicates and missing values, creates new features, and cleans data from multiple sources.
+    - Adds weather data (from the Meteostat library) based on route coordinates and date.
+    - Integrates passenger data and merges all relevant information.
 
-2. **Exploratory Data Analysis (EDA)**:
-- Analyzes flight status, performance, time windows, flight categories, and frequent routes/airports.
-- Explores delay patterns by airline and examines the impact of external factors on delays.
+- **Exploratory Data Analysis (EDA)**:
+    - Analyzes flight status, performance, time windows, flight categories, and frequent routes/airports.
+    - Explores delay patterns by airline and examines the impact of external factors on delays.
 
 
-### Notebook 2 - Modeling and Predictions
+### MLNotebook
+
+*Notebook 2 - Modeling and Predictions*
 
 **Note**: Run the EDA notebook first to generate necessary cleaned data files.
 
 This notebook includes feature engineering, ML model training, and performance evaluation.
 
-1. **Feature Engineering**:
-- Applies one-hot encoding and correlation analysis to refine features.
-- Uses standardization, normalization, and regularization techniques to improve model performance.
+- **Feature Engineering**:
+    - Applies one-hot encoding and correlation analysis to refine features.
+    - Uses standardization, normalization, and regularization techniques to improve model performance.
 
-2. **Modeling**:
-- Implements multiple models: Linear Regression, Decision Tree, and Random Forest.
-        Includes hyperparameter tuning with Grid Search CV and Randomized Search CV for optimal model selection.
+- **Modeling**:
+    - Implements multiple models: Linear Regression, Decision Tree, and Random Forest.
+    - Includes hyperparameter tuning with Grid Search CV and Randomized Search CV for optimal model selection.
 
-3. **Residual Analysis**:
-- Assesses residuals to ensure model assumptions are met, covering key diagnostics such as linearity, homoscedasticity, normality, and independence.
+- **Residual Analysis**:
+    - Assesses residuals to ensure model assumptions are met, covering key diagnostics such as linearity, homoscedasticity, normality, and independence.
 
 ## Usage
 
@@ -172,7 +175,7 @@ print(f"Best Model: {best_model}")
 print(f"Best Parameters: {best_params}")
 ```
 
-## Running Tests
+## Tests
 
 Tests are written using `pytest`. To run the tests, use the following command:
 
