@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 class ModelTraining:
     def __init__(self, x_train, y_train, x_test, y_test):
@@ -25,14 +26,17 @@ class ModelTraining:
 
         Returns:
         statsmodels.OLS: Trained OLS Regression model.
+        array-like: Predicted values for x_test.
         """
         # Add a constant (intercept) to the model
         x_train_with_const = sm.add_constant(self.x_train)
+        x_test_with_const = sm.add_constant(self.x_test)
 
         # Fit the model using statsmodels OLS
         self.model = sm.OLS(self.y_train, x_train_with_const).fit()
+        self.y_pred = self.model.predict(x_test_with_const)
 
-        return self.model
+        return self.model, self.y_pred
 
     def train_random_forest(self):
         """
@@ -40,26 +44,13 @@ class ModelTraining:
 
         Returns:
         RandomForestRegressor: Trained Random Forest Regressor model.
+        array-like: Predicted values for x_test.
         """
         self.model = RandomForestRegressor(n_estimators=200, random_state=42)
         self.model.fit(self.x_train, self.y_train)
+        self.y_pred = self.model.predict(self.x_test)
 
-        return self.model
-
-    def predict(self):
-        """
-        Predicts values using the trained model and stores predictions in y_pred.
-
-        Returns:
-        array-like: Predicted values for x_test.
-        """
-        if isinstance(self.model, sm.OLS):
-            x_test_with_const = sm.add_constant(self.x_test)
-            self.y_pred = self.model.predict(x_test_with_const)
-        else:
-            self.y_pred = self.model.predict(self.x_test)
-
-        return self.y_pred
+        return self.model, self.y_pred
 
     def plot_model(self):
         """
@@ -78,3 +69,38 @@ class ModelTraining:
         plt.ylim(self.y_test.min(), self.y_test.max())
         plt.grid()
         plt.show()
+
+    def tune_and_evaluate(self, param_grid, search_type='grid', cv=5, scoring='neg_mean_squared_error', n_iter=10):
+        """
+        Performs hyperparameter tuning (Grid Search or Randomized Search) and evaluates the best model on test data.
+
+        Parameters:
+        model: The model instance (e.g., RandomForestRegressor()) to be tuned and evaluated.
+        param_grid: Dictionary containing parameter grid for hyperparameter tuning.
+        search_type: Type of search ('grid' for GridSearchCV, 'random' for RandomizedSearchCV).
+        cv: Number of cross-validation folds.
+        scoring: Scoring metric for evaluation.
+        n_iter: Number of parameter settings sampled in RandomizedSearchCV.
+
+        Returns:
+        dict: The best parameters and evaluation metrics.
+        """
+        if search_type == 'grid':
+            search = GridSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
+                                  param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=2)
+        elif search_type == 'random':
+            search = RandomizedSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
+                                        param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring, n_jobs=-1, verbose=2)
+        else:
+            raise ValueError("Invalid search_type. Choose 'grid' or 'random'.")
+
+        # Fit search on the training data
+        search.fit(self.x_train, self.y_train)
+
+        # Retrieve best model
+        best_model = search.best_estimator_
+        best_model.fit(self.x_train, self.y_train)
+        best_parameters = search.best_params_
+        self.y_pred = best_model.predict(self.x_test)
+
+        return best_model, best_parameters, self.y_pred

@@ -5,11 +5,11 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import scipy.stats as stats
 
 class ResidualAnalysis:
-    def __init__(self, model, x_test, y_test):
+    def __init__(self, model, y_pred, x_test, y_test):
         self.model = model
         self.x_test = x_test
         self.y_test = y_test
-        self.y_pred = model.predict(x_test)
+        self.y_pred = y_pred
         self.residuals = y_test - self.y_pred
 
     def plot_residuals(self):

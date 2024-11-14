@@ -1,17 +1,19 @@
 # core/ML_pipelines/ModelEvaluation.py
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+import numpy as np
+import statsmodels.api as sm
 
 class ModelEvaluation:
-    def __init__(self, model, x_train, y_train, x_test, y_test):
+    def __init__(self, model, y_pred, x_train, y_train, x_test, y_test):
         self.model = model
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
-        self.y_pred = model.predict(x_test)
+        self.y_pred = y_pred
 
-    def evaluate_model(self, model):
+    def evaluate_model(self):
         """
         Evaluates the given model on the testing data.
 
@@ -27,18 +29,28 @@ class ModelEvaluation:
 
         return {'MAE': f"{test_mae:.2f}", 'MSE': f"{test_mse:.2f}", 'R2': f"{test_r2:.2f}"}
 
-    def cross_validate(self, model, cv=5):
+    def cross_validate(self, cv=5):
         """
-        Performs cross-validation on the given model using the training data.
+        Perform k-fold cross-validation on the model.
 
         Parameters:
-        model (object): The model to cross-validate.
         cv (int): Number of cross-validation folds. Default is 5.
 
         Returns:
-        array: Cross-validation scores.
+        array: Cross-validation R2 scores.
         """
-        cv_metrics = cross_val_score(model, self.x_train, self.y_train, cv=cv)
-        print(f"Cross-validation Metric: {cv_metrics}")
+        kf = KFold(n_splits=cv, shuffle=True, random_state=42)
+        scores = []
 
-        return cv_metrics
+        for train_index, val_index in kf.split(self.x_train):
+            x_train_fold, x_val_fold = self.x_train.iloc[train_index], self.x_train.iloc[val_index]
+            y_train_fold, y_val_fold = self.y_train.iloc[train_index], self.y_train.iloc[val_index]
+
+            # Fit a new OLS model for each fold
+            ols_model = sm.OLS(y_train_fold, sm.add_constant(x_train_fold))
+            model_fit = ols_model.fit()
+            y_pred_fold = model_fit.predict(sm.add_constant(x_val_fold))
+
+            scores.append(r2_score(y_val_fold, y_pred_fold))
+
+        return np.array(scores)
