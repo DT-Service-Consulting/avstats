@@ -1,11 +1,15 @@
 # core/ML_pipelines/DataPreparation.py
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Lasso
 
 class DataPreparation:
     def __init__(self, df: pd.DataFrame):
         self.df = df
         self.df_encoded = None
-        self.df_reduced = None
+        self.df_numeric = None
+        self.x = None
+        self.y = None
 
     def encode_routes(self):
         """
@@ -50,34 +54,70 @@ class DataPreparation:
 
     def clean_data(self):
         """
-        Removes columns in the encoded dataframe where all values are zero.
+        Removes columns in the encoded dataframe where all values are zero
+        and converts 'total_passengers' to numeric
 
         Returns:
         pd.DataFrame: The dataframe with zero-only columns removed.
         """
         df_reduced = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)]
-        self.df_reduced = df_reduced
 
-        return df_reduced
-
-    def prepare_features(self):
-        """
-        Converts 'total_passengers' to numeric, drops specified features,
-        and returns the reduced dataframe with relevant numeric features.
-
-        Returns:
-        pd.DataFrame: The reduced dataframe with selected features.
-        """
         # Convert 'total_passengers' to numeric, coercing errors to NaN
-        self.df_reduced.loc[:, 'total_passengers'] = pd.to_numeric(self.df_reduced['total_passengers'], errors='coerce')
+        df_reduced.loc[:, 'total_passengers'] = pd.to_numeric(df_reduced['total_passengers'], errors='coerce')
 
         # Select only numeric columns
-        df_numeric = self.df_reduced.select_dtypes(include=['number'])
+        self.df_numeric = df_reduced.select_dtypes(include=['number'])
 
-        # List of features to drop
-        features_to_drop = ['total_flights', 'total_dep_delay_15', 'departures', 'arrivals']
+        return self.df_numeric
 
-        # Drop the specified columns
-        df_numeric = df_numeric.drop(columns=features_to_drop)
+    def standardize_data(self):
+        # Prepare data
+        self.x = self.df_numeric.drop(columns=['total_dep_delay'])  # drop the target variable
+        self.y = self.df_numeric['total_dep_delay']
 
-        return df_numeric
+        # Create the scaler instance
+        scaler = StandardScaler()
+
+        # Apply scaling to the features
+        x_scaled = scaler.fit_transform(self.x)
+
+        # Convert the scaled data back into a DataFrame for easier handling
+        x_scaled_df = pd.DataFrame(x_scaled, columns=self.x.columns)
+
+        return x_scaled_df, self.y  # return the scaled features and target variable
+
+
+    def select_important_features(self, alpha=0.2, threshold_percentage=0.03):
+        """
+        Select important features based on Lasso regression coefficients.
+
+        Parameters:
+        - x (pd.DataFrame): The input features.
+        - y (pd.Series): The target variable.
+        - alpha (float): Regularization strength for Lasso.
+        - threshold_percentage (float): Threshold as a percentage of the max absolute coefficient.
+
+        Returns:
+        - x_important (pd.DataFrame): DataFrame with only the important features.
+        - important_features (pd.Series): Series of important feature coefficients.
+        """
+        # Standardize the features
+        scaler = StandardScaler()
+        x_scaled = scaler.fit_transform(self.x)
+
+        # Fit Lasso model
+        lasso = Lasso(alpha=alpha, max_iter=10000)
+        lasso.fit(x_scaled, self.y)
+
+        # Get the coefficients and identify important features
+        coefficients = pd.Series(lasso.coef_, index=self.x.columns)
+        max_abs_coef = abs(coefficients).max()
+
+        # Define a threshold for "close to zero" based on max coefficient
+        threshold = max_abs_coef * threshold_percentage
+        important_features = coefficients[abs(coefficients) > threshold].sort_values(ascending=False)
+
+        # Create a new dataframe with only the important features
+        x_important = self.x[important_features.index]
+
+        return x_important, important_features

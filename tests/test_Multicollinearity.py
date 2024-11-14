@@ -5,31 +5,30 @@ from avstats.core.ML_pipelines.Multicollinearity import Multicollinearity
 
 @pytest.fixture
 def sample_data():
+    # Create a simple DataFrame with correlated features and a target variable
     data = {
-        'target': [1, 2, 3, 4, 5],
-        'feature1': [4, 2, 1, 3, 5],
-        'feature2': [4, 2, 1, 3, 5],
-        'feature3': [5, 4, 3, 2, 1]
+        'A': [1, 0, 1, 0, 1],
+        'B': [1, 0, 1, 1, 1],  # Some correlation with A
+        'C': [1, 1, 0, 0, 0],  # Another feature
+        'D': [1, 0, 1, 0, 0],  # Some correlation with A
+        'E': [1, 0, 1, 0, 1],  # Perfectly correlated with A - Removed
+        'F': [1, 1, 1, 1, 1]   # Constant feature - Removed
     }
     df = pd.DataFrame(data)
-    return df
+    y = pd.Series([1, 0, 1, 0, 1], name='target')
+    return df, y
 
 
-@pytest.fixture
-def multicollinearity(sample_data):
-    return Multicollinearity(sample_data)
+def test_remove_high_vif_features(sample_data):
+    df, y = sample_data
+    multi = Multicollinearity(scaled_df=df, y=y, verbose=False)
+    result_df, features = multi.remove_high_vif_features(threshold=5)
 
+    assert 'A' not in features.columns, "Feature 'A' with high VIF removed"
+    assert 'B' in features.columns,     "Feature 'B' with mid VIF not removed"
+    assert 'C' in features.columns,     "Feature 'C' with low VIF not removed"
+    assert 'D' in features.columns,     "Feature 'D' with mid VIF not removed"
+    assert 'E' not in features.columns, "Feature 'E' with high VIF removed"
+    assert 'F' not in features.columns, "Feature 'F' constant removed"
 
-def test_calculate_vif(multicollinearity):
-    result = multicollinearity.calculate_vif()
-    expected_features = ['target', 'feature1', 'feature2', 'feature3']
-    assert list(result[
-                    'feature']) == expected_features, f"Expected: {expected_features}, got {list(result['feature'])}"
-    assert all(result['VIF'] >= 1), "VIF values should be greater than or equal to 1"
-
-
-def test_remove_high_vif_features(multicollinearity):
-    result = multicollinearity.remove_high_vif_features(target_variable='target', threshold=5)
-    expected_columns = ['target', 'feature3']
-    assert list(
-        result.columns) == expected_columns, f"Expected columns {expected_columns}, but got {list(result.columns)}"
+    print(result_df)

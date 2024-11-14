@@ -1,8 +1,6 @@
 # core/ML_pipelines/ModelTraining.py
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
 from sklearn.ensemble import RandomForestRegressor
 
 class ModelTraining:
@@ -18,19 +16,23 @@ class ModelTraining:
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
+        self.model = None
         self.y_pred = None
 
     def train_linear_model(self):
         """
-        Trains a Linear Regression model using the training data.
+        Trains a Linear Regression model using statsmodels and provides a detailed summary.
 
         Returns:
-        LinearRegression: Trained Linear Regression model.
+        statsmodels.OLS: Trained OLS Regression model.
         """
-        model = LinearRegression()
-        model.fit(self.x_train, self.y_train)
+        # Add a constant (intercept) to the model
+        x_train_with_const = sm.add_constant(self.x_train)
 
-        return model
+        # Fit the model using statsmodels OLS
+        self.model = sm.OLS(self.y_train, x_train_with_const).fit()
+
+        return self.model
 
     def train_random_forest(self):
         """
@@ -39,16 +41,32 @@ class ModelTraining:
         Returns:
         RandomForestRegressor: Trained Random Forest Regressor model.
         """
-        model = RandomForestRegressor(n_estimators=200, random_state=42)
-        model.fit(self.x_train, self.y_train)
+        self.model = RandomForestRegressor(n_estimators=200, random_state=42)
+        self.model.fit(self.x_train, self.y_train)
 
-        return model
+        return self.model
 
-    def plot_model(self, model):
+    def predict(self):
+        """
+        Predicts values using the trained model and stores predictions in y_pred.
+
+        Returns:
+        array-like: Predicted values for x_test.
+        """
+        if isinstance(self.model, sm.OLS):
+            x_test_with_const = sm.add_constant(self.x_test)
+            self.y_pred = self.model.predict(x_test_with_const)
+        else:
+            self.y_pred = self.model.predict(self.x_test)
+
+        return self.y_pred
+
+    def plot_model(self):
         """
         Plots the model's predicted values against the actual values using a scatter plot.
         """
-        self.y_pred = model.predict(self.x_test)
+        if self.y_pred is None:
+            raise ValueError("You need to call predict() before plotting.")
 
         plt.figure(figsize=(10, 6))
         plt.scatter(self.y_test, self.y_pred, alpha=0.7)
