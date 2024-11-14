@@ -150,31 +150,6 @@ print(f"Missing values: {missing_values}")
 print(f"Duplicate rows:\n{duplicate_rows}")
 ```
 
-### Multicollinearity Analysis
-
-The `Multicollinearity` class provides methods to calculate VIF and remove features with high VIF values.
-
-```python
-from ML_pipelines.ModelTraining import ModelTraining
-
-# Define parameter grid for tuning
-param_grid_rf = {
-    'n_estimators': [100, 200, 300],
-    'max_depth': [None, 10, 20, 30],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4]
-}
-
-# Initialize and tune the model
-model_training = ModelTraining(x_train, y_train, x_test, y_test)
-best_model, best_params = model_training.tune_and_evaluate(
-    param_grid=param_grid_rf,
-    search_type='grid'
-)
-print(f"Best Model: {best_model}")
-print(f"Best Parameters: {best_params}")
-```
-
 ## Tests
 
 Tests are written using `pytest`. To run the tests, use the following command:
