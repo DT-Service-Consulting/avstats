@@ -1,4 +1,4 @@
-# core/ML_pipelines/Multicollinearity.py
+# core/ML_workflow/Multicollinearity.py
 import pandas as pd
 from pandas import DataFrame
 from statsmodels.stats.outliers_influence import variance_inflation_factor

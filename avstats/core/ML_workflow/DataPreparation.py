@@ -1,4 +1,4 @@
-# core/ML_pipelines/DataPreparation.py
+# core/ML_workflow/DataPreparation.py
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso

@@ -1,4 +1,4 @@
-# core/ML_pipelines/ModelTraining.py
+# core/ML_workflow/ModelTraining.py
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.ensemble import RandomForestRegressor
@@ -70,7 +70,7 @@ class ModelTraining:
         plt.grid()
         plt.show()
 
-    def tune_and_evaluate(self, param_grid, search_type='grid', cv=5, scoring='neg_mean_squared_error', n_iter=10):
+    def tune_and_evaluate(self, param_grid, verbose, search_type='grid', cv=5, scoring='neg_mean_squared_error', n_iter=10):
         """
         Performs hyperparameter tuning (Grid Search or Randomized Search) and evaluates the best model on test data.
 
@@ -87,10 +87,10 @@ class ModelTraining:
         """
         if search_type == 'grid':
             search = GridSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                  param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=2)
+                                  param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose)
         elif search_type == 'random':
             search = RandomizedSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                        param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring, n_jobs=-1, verbose=2)
+                                        param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose)
         else:
             raise ValueError("Invalid search_type. Choose 'grid' or 'random'.")
 
