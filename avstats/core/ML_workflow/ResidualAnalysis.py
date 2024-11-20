@@ -1,7 +1,6 @@
 # core/ML_workflow/ResidualAnalysis.py
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import scipy.stats as stats
 
 class ResidualAnalysis:
@@ -17,6 +16,7 @@ class ResidualAnalysis:
         Plots residuals vs. predicted values in the specified subplot or as a standalone plot.
 
         Parameters:
+        - dataset_name (str): The name of the dataset being analyzed. This is used in the plot title.
         - subplot_position: tuple (nrows, ncols, index) for plt.subplot. If None, creates a standalone plot.
         """
         sns.set_theme(style="whitegrid")
@@ -38,29 +38,57 @@ class ResidualAnalysis:
         if not subplot_position:
             plt.show()
 
-    """
-    def plot_histogram(self):
-        # Histogram of residuals
-        plt.figure(figsize=(10, 6))
-        sns.histplot(self.residuals, kde=True)
-        plt.title('Residuals Distribution')
+
+    def q_q_normality(self, dataset_name, subplot_position=None):
+        """
+        Generates a Q-Q plot to check the normality of residuals.
+
+        This method creates a Quantile-Quantile (Q-Q) plot to visually assess
+        if the residuals from a dataset follow a normal distribution.
+
+        Parameters:
+        - dataset_name (str): The name of the dataset being analyzed. This is used in the plot title.
+        - subplot_position (tuple, optional): The position of the subplot in the format
+          (nrows, ncols, index). If provided, the plot will be part of a larger subplot grid.
+          If not provided, the plot will be shown independently.
+        """
+        # Q-Q plot for normality check
+        sns.set_theme(style="whitegrid")
+        if subplot_position:
+            plt.subplot(*subplot_position)  # Unpack the subplot position (nrows, ncols, index)
+        else:
+            plt.figure(figsize=(10, 6))
+
+        stats.probplot(self.residuals, dist="norm", plot=plt)
+        plt.title(f'Q-Q Plot of Residuals - {dataset_name}')
+
+        # Show plot only if not in subplot mode
+        if not subplot_position:
+            plt.show()
+
+    def histogram_normality(self, dataset_name, subplot_position=None):
+        """
+        Plots a histogram to visualize the distribution of residuals,
+        helping to assess the normality of the residuals for a given dataset.
+
+        Parameters:
+        - dataset_name (str): The name of the dataset, used in the plot title.
+        - subplot_position (tuple, optional): A tuple specifying the subplot position in the format
+        (nrows, ncols, index). If provided, the histogram will be plotted in a subplot; otherwise, a
+        new figure will be created.
+        """
+        sns.set_theme(style="whitegrid")
+        if subplot_position:
+            plt.subplot(*subplot_position)  # Unpack the subplot position (nrows, ncols, index)
+        else:
+            plt.figure(figsize=(10, 6))
+
+        plt.hist(self.residuals, bins=30, alpha=0.7, color='blue', edgecolor='black')
+        plt.title(f'Histogram of Residuals - {dataset_name}')
         plt.xlabel('Residuals')
         plt.ylabel('Frequency')
-        plt.show()
+        plt.grid()
 
-    def normality_test(self):
-        # Perform normality test on residuals (Shapiro-Wilk test)
-        stat, p_value = stats.shapiro(self.residuals)
-        print(f"Shapiro-Wilk Test: Statistic={stat}, p-value={p_value}")
-        return stat, p_value
-
-    def homoscedasticity_test(self):
-        # Plot residuals against fitted values for heteroscedasticity check
-        plt.figure(figsize=(10, 6))
-        sns.scatterplot(x=self.y_pred, y=self.residuals)
-        plt.axhline(y=0, color='r', linestyle='--')
-        plt.xlabel('Fitted values')
-        plt.ylabel('Residuals')
-        plt.title('Residuals vs Fitted Values (Homoscedasticity Check)')
-        plt.show()
-    """
+        # Show plot only if not in subplot mode
+        if not subplot_position:
+            plt.show()
