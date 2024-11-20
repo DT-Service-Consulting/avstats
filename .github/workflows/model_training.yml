@@ -1,10 +1,10 @@
 name: Model Training Workflow
 
 on:
+  workflow_dispatch:  # Manual trigger via GitHub UI
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - 'v*'  # Trigger only when pushing a version tag (e.g., v1.0)
 
 jobs:
   train-models:
