@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: '3.9'
 
       - name: Install Poetry
         run: |
@@ -32,4 +32,4 @@ jobs:
 
       - name: Train Models
         run: |
-          python avstats/run_AvStats_ML.py
+          poetry run python avstats/run_AvStats_ML.py
