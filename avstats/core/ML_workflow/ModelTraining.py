@@ -1,6 +1,8 @@
 # core/ML_workflow/ModelTraining.py
 import matplotlib.pyplot as plt
+import numpy as np
 import statsmodels.api as sm
+from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
@@ -70,7 +72,8 @@ class ModelTraining:
         plt.grid()
         plt.show()
 
-    def tune_and_evaluate(self, param_grid, verbose, search_type='grid', cv=5, scoring='neg_mean_squared_error', n_iter=10):
+    def tune_and_evaluate(self, param_grid, verbose, search_type='grid', cv=5, scoring='neg_mean_squared_error',
+                          n_iter=10, log_scale=False):
         """
         Performs hyperparameter tuning (Grid Search or Randomized Search) and evaluates the best model on test data.
 
@@ -81,21 +84,48 @@ class ModelTraining:
         cv: Number of cross-validation folds.
         scoring: Scoring metric for evaluation.
         n_iter: Number of parameter settings sampled in RandomizedSearchCV.
+        log_scale: Boolean to specify whether to use logarithmic scale for the training set sizes.
 
         Returns:
         dict: The best parameters and evaluation metrics.
         """
-        if search_type == 'grid':
-            search = GridSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                  param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose)
-        elif search_type == 'random':
-            search = RandomizedSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                        param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose)
-        else:
-            raise ValueError("Invalid search_type. Choose 'grid' or 'random'.")
+        train_errors = []
+        test_errors = []
+        sample_sizes = []  # List to store the number of samples for each training set
 
-        # Fit search on the training data
-        search.fit(self.x_train, self.y_train)
+        if log_scale:
+            train_sizes = np.logspace(np.log10(0.01), np.log10(1.0),
+                                      num=10)  # Logarithmic space between 1% to 100% of data
+        else:
+            train_sizes = np.linspace(0.1, 1.0, 10)  # Regular linear space
+
+        for train_size in train_sizes:
+            # Subset the training data
+            x_train_subset = self.x_train.sample(frac=train_size, random_state=42)
+            y_train_subset = self.y_train.loc[x_train_subset.index]
+
+            # Perform grid search
+            if search_type == 'grid':
+                search = GridSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
+                                      param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose,
+                                      return_train_score=True)
+            elif search_type == 'random':
+                search = RandomizedSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
+                                            param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring,
+                                            n_jobs=-1, verbose=verbose, return_train_score=True)
+            else:
+                raise ValueError("Invalid search_type. Choose 'grid' or 'random'.")
+
+            # Fit the search on the subset of training data
+            search.fit(x_train_subset, y_train_subset)
+
+            # For each combination of parameters, store the training and test errors
+            train_score = -search.best_score_  # Negative because scoring is 'neg_mean_squared_error'
+            test_score = mean_squared_error(self.y_test, search.best_estimator_.predict(self.x_test))
+
+            train_errors.append(train_score)
+            test_errors.append(test_score)
+            sample_sizes.append(len(x_train_subset))  # Number of samples used in this iteration
 
         # Retrieve best model
         best_model = search.best_estimator_
@@ -103,4 +133,5 @@ class ModelTraining:
         best_parameters = search.best_params_
         self.y_pred = best_model.predict(self.x_test)
 
-        return best_model, best_parameters, self.y_pred
+        return best_model, best_parameters, self.y_pred, sample_sizes, train_errors, test_errors
+
