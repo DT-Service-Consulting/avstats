@@ -1,6 +1,7 @@
 # core/ML_workflow/ModelTraining.py
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import statsmodels.api as sm
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
@@ -60,6 +61,7 @@ class ModelTraining:
         """
         if self.y_pred is None:
             raise ValueError("You need to call predict() before plotting.")
+        sns.set_theme(style="whitegrid")
 
         plt.figure(figsize=(10, 6))
         plt.scatter(self.y_test, self.y_pred, alpha=0.7)

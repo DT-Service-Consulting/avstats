@@ -12,18 +12,31 @@ class ResidualAnalysis:
         self.y_pred = y_pred
         self.residuals = y_test - self.y_pred
 
-    def plot_residuals(self):
-        # Plot residuals vs fitted values
-        plt.figure(figsize=(10, 6))
+    def plot_residuals(self, dataset_name, subplot_position=None):
+        """
+        Plots residuals vs. predicted values in the specified subplot or as a standalone plot.
+
+        Parameters:
+        - subplot_position: tuple (nrows, ncols, index) for plt.subplot. If None, creates a standalone plot.
+        """
+        sns.set_theme(style="whitegrid")
+        if subplot_position:
+            plt.subplot(*subplot_position)  # Unpack the subplot position (nrows, ncols, index)
+        else:
+            plt.figure(figsize=(10, 6))
+
         plt.scatter(self.y_pred, self.residuals, alpha=0.5)
         plt.axhline(0, color='red', linestyle='--')  # Add a line at zero
-        plt.title('Errors vs Predicted Values')
+        plt.title(f'Errors vs Predicted Values - {dataset_name}')
         plt.xlabel('Predicted Values')
         plt.ylabel('Errors')
         plt.xlim(0, 20000)
         plt.ylim(-max(abs(self.residuals)), max(abs(self.residuals)))
         plt.grid()
-        plt.show()
+
+        # Show plot only if not in subplot mode
+        if not subplot_position:
+            plt.show()
 
     """
     def plot_histogram(self):
