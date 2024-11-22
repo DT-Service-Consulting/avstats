@@ -2,7 +2,7 @@ import pytest
 from pandas import DataFrame
 from unittest.mock import patch
 from datetime import datetime
-from avstats.core.classes.WeatherData import WeatherData
+from avstats.core.EDA_workflow.WeatherData import WeatherData
 
 
 @pytest.fixture

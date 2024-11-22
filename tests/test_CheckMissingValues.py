@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from avstats.core.classes.CheckMissingValues import DataCleaning
+from avstats.core.EDA_workflow.CheckMissingValues import DataCleaning
 
 
 @pytest.fixture

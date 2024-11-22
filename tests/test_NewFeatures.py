@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from avstats.core.classes.NewFeatures import NewFeatures
+from avstats.core.EDA_workflow.NewFeatures import NewFeatures
 
 
 @pytest.fixture

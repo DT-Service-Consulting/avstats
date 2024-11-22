@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from avstats.core.classes.FlightPerformance import FlightPerformance
+from avstats.core.EDA_workflow.FlightPerformance import FlightPerformance
 
 
 @pytest.fixture
