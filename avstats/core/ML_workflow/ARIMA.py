@@ -69,7 +69,7 @@ class TimeSeriesAnalysis:
 
     def fit_arima(self, order):
         # Fit the ARIMA model
-        self.model = ARIMA(self.df[self.column], order=order).fit()
+        self.model = ARIMA(self.df[self.column], order=order).fit(method_kwargs={"maxiter": 500, "disp": False})
 
         return self.model
 
