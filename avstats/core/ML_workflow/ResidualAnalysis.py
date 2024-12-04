@@ -4,12 +4,10 @@ import seaborn as sns
 import scipy.stats as stats
 
 class ResidualAnalysis:
-    def __init__(self, model, y_pred, x_test, y_test):
+    def __init__(self, model, y_pred, residuals):
         self.model = model
-        self.x_test = x_test
-        self.y_test = y_test
         self.y_pred = y_pred
-        self.residuals = y_test - self.y_pred
+        self.residuals = residuals
 
     def plot_residuals(self, dataset_name, subplot_position=None):
         """

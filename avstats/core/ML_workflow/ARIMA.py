@@ -18,13 +18,16 @@ class TimeSeriesAnalysis:
         self.column = column
         self.date_column = date_column
         self.model = None
+        self.conf_int = None
+        self.generated_forecast = None
+        self.forecast_index = None
 
         # Ensure the date column is a datetime object
         self.df[date_column] = pd.to_datetime(self.df[date_column])
 
         # Set the date column as the index and ensure frequency
         self.df.set_index(date_column, inplace=True)
-        self.df = self.df.asfreq('MS')  # Monthly Start Frequency (example)
+        self.df = self.df.asfreq('D')
 
     def check_stationarity(self, max_diffs=2):
         """
@@ -49,7 +52,6 @@ class TimeSeriesAnalysis:
 
         # If the loop ends, it means the series is still non-stationary after the max_diffs
         print(f"Series is still non-stationary after {max_diffs} differencing.")
-
         return differenced_data, False
 
     def plot_acf_pacf(self, acf_lag, pacf_lag):
@@ -64,38 +66,34 @@ class TimeSeriesAnalysis:
         plt.subplot(122)
         plot_pacf(self.df[self.column], lags=pacf_lag, ax=plt.gca()) #5
         plt.title("PACF Plot")
-
         plt.tight_layout()
 
     def fit_arima(self, order):
         # Fit the ARIMA model
         self.model = ARIMA(self.df[self.column], order=order).fit(method_kwargs={"maxiter": 500, "disp": False})
-
         return self.model
 
-    def plot_forecast(self, steps):
+    def forecast(self, steps):
         if self.model is None:
             raise ValueError("Model is not fitted yet. Call 'fit_arima' first.")
 
         # Generate forecast
-        forecast = self.model.get_forecast(steps=steps)
-        conf_int = forecast.conf_int()
+        self.generated_forecast = self.model.get_forecast(steps=steps)
+        self.conf_int = self.generated_forecast.conf_int()
 
         # Generate forecast index
-        forecast_index = pd.date_range(
-            start=self.df.index[-1] + pd.offsets.MonthBegin(1),
-            periods=steps,
-            freq=self.df.index.freq
-        )
+        self.forecast_index = pd.date_range(start=self.df.index[-1] + pd.Timedelta(days=1), periods=steps, freq='D')
+        return self.generated_forecast, self.forecast_index, self.conf_int
 
+    def plot_forecast(self):
         # Plot actual and forecasted values
         plt.figure(figsize=(10, 6))
         plt.plot(self.df.index, self.df[self.column], label="Actual")
-        plt.plot(forecast_index, forecast.predicted_mean, label="Forecast", linestyle='--')
+        plt.plot(self.forecast_index, self.generated_forecast.predicted_mean, label="Forecast", linestyle='--')
         plt.fill_between(
-            forecast_index,
-            conf_int.iloc[:, 0],
-            conf_int.iloc[:, 1],
+            self.forecast_index,
+            self.conf_int.iloc[:, 0],
+            self.conf_int.iloc[:, 1],
             color='gray',
             alpha=0.2,
             label="Confidence Interval"

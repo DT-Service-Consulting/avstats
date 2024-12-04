@@ -14,7 +14,7 @@ sys.path.append(str(BASE_DIR / 'core'))
 
 try:
     from core.config import PARAM_GRID_RF
-    from core.ML_workflow.DataPreparation import DataPreparation
+    from core.ML_workflow.OneHotEncoding import DataPreparation
     from core.ML_workflow.Multicollinearity import Multicollinearity
     from core.ML_workflow.ModelTraining import ModelTraining
     from core.ML_workflow.ResidualAnalysis import ResidualAnalysis

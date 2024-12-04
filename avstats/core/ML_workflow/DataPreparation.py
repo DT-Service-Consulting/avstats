@@ -1,79 +1,20 @@
-# core/ML_workflow/DataPreparation.py
+# core/ML_workflow/OneHotEncoding.py
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso
 
+
 class DataPreparation:
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, target_variable):
         self.df = df
-        self.df_encoded = None
-        self.df_numeric = None
+        self.target_variable = target_variable # total_dep_delay with routes, dep_delay with weather
         self.x = None
         self.y = None
 
-    def encode_routes(self):
-        """
-        Encodes the specified route column, modifies the dummy variables,
-        and creates a subset of the dataframe for correlation analysis.
-
-        Parameters:
-        df (pd.DataFrame): The dataframe containing the data to encode.
-        route_column (str): The name of the column to one-hot encode.
-        target_column (str): The target column for correlation analysis.
-
-        Returns:
-        pd.DataFrame: A subset of the dataframe with encoded route columns and the target column.
-        """
-        try:
-            # One-hot encode the 'route_iata_code' column
-            df_encoded = pd.get_dummies(self.df, columns=['route_iata_code'], drop_first=False, prefix='')
-
-            # Convert dummy variables to numerical format (0 to 0, 1 to 2)
-            for col in df_encoded.columns:
-                if '-' in col:
-                    df_encoded[col] = df_encoded[col] * 2
-
-            # Remove leading underscores from column names
-            df_encoded.columns = df_encoded.columns.str.lstrip('_')
-
-            # Select the route code columns and the target column
-            route_columns = [col for col in df_encoded.columns if '-' in col]
-            corr_columns = ['total_dep_delay_15'] + route_columns
-
-            # Create a subset of the dataframe for correlation
-            corr_df = df_encoded[corr_columns]
-
-            # Store encoded dataframe for further processing
-            self.df_encoded = df_encoded
-
-            return df_encoded, corr_df, route_columns
-
-        except KeyError as e:
-            print(f"Encoding error: {e}")
-            return None
-
-    def clean_data(self):
-        """
-        Removes columns in the encoded dataframe where all values are zero
-        and converts 'total_passengers' to numeric
-
-        Returns:
-        pd.DataFrame: The dataframe with zero-only columns removed.
-        """
-        df_reduced = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)]
-
-        # Convert 'total_passengers' to numeric, coercing errors to NaN
-        df_reduced.loc[:, 'total_passengers'] = pd.to_numeric(df_reduced['total_passengers'], errors='coerce')
-
-        # Select only numeric columns
-        self.df_numeric = df_reduced.select_dtypes(include=['number'])
-
-        return self.df_numeric
-
     def standardize_data(self):
         # Prepare data
-        self.x = self.df_numeric.drop(columns=['total_dep_delay'])  # drop the target variable
-        self.y = self.df_numeric['total_dep_delay']
+        self.x = self.df.drop(columns=[self.target_variable])  # drop the target variable
+        self.y = self.df[self.target_variable]
 
         # Create the scaler instance
         scaler = StandardScaler()
