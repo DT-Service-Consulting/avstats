@@ -4,6 +4,7 @@ import pandas as pd
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 def adf_test(series):
     """
@@ -71,6 +72,11 @@ class TimeSeriesAnalysis:
     def fit_arima(self, order):
         # Fit the ARIMA model
         self.model = ARIMA(self.df[self.column], order=order).fit(method_kwargs={"maxiter": 500, "disp": False})
+        return self.model
+
+    def fit_sarimax(self, order, seasonal_order):
+        # Fit the SARIMAX model
+        self.model = SARIMAX(self.df[self.column], order=order, seasonal_order=seasonal_order).fit(method_kwargs={"maxiter": 500, "disp": False})
         return self.model
 
     def forecast(self, steps):
