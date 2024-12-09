@@ -29,10 +29,10 @@ class TimeSeriesAnalysis:
         self.end_date = end_date
 
         # Ensure the date column is a datetime object
-        self.df[date_column] = pd.to_datetime(self.df[date_column])
+        #self.df[date_column] = pd.to_datetime(self.df[date_column])
 
         # Set the date column as the index and ensure frequency
-        self.df.set_index(date_column, inplace=True)
+        #self.df.set_index(date_column, inplace=True)
         self.df = self.df.asfreq('D')
 
     def check_stationarity(self, max_diffs=2):
@@ -113,7 +113,7 @@ class TimeSeriesAnalysis:
         self.plot_forecast(predictions, title)
 
         # Evaluate
-        return test_data, predictions, residuals
+        return test_data, predictions, residuals, model
 
     def rolling_forecast(self, order, train_window, forecast_steps=1, seasonal_order=None):
         """Perform rolling forecast using SARIMAX."""
