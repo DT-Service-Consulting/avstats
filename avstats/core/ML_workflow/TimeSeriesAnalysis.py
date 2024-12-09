@@ -1,11 +1,15 @@
 # core/ML_workflow/TimeSeriesAnalysis.py
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from datetime import datetime, timedelta
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
+from tensorflow.keras.models import Sequential
 
 def adf_test(series):
     """
@@ -137,3 +141,56 @@ class TimeSeriesAnalysis:
         # Plot results
         self.plot_forecast(rolling_predictions, title="Rolling Forecast vs Actual")
         return rolling_actual, rolling_predictions, residuals
+
+
+class NeuralNetworks:
+    def __init__(self, df):
+        self.df = df
+
+    def neural_networks(self):
+        # Load and prepare the data
+        values = self.df['total_dep_delay'].values  # Replace with your column name
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_values = scaler.fit_transform(values.reshape(-1, 1))
+
+        # Create sliding windows
+        def create_dataset(data, look_back=1):
+            x, y = [], []
+            for i in range(len(data) - look_back - 1):
+                x.append(data[i:(i + look_back), 0])
+                y.append(data[i + look_back, 0])
+            return np.array(x), np.array(y)
+
+        look_back = 10  # Number of past days used for prediction
+        x, y = create_dataset(scaled_values, look_back)
+
+        # Reshape for LSTM input
+        x = np.reshape(x, (x.shape[0], x.shape[1], 1))
+
+        # Train-test split
+        train_size = int(len(x) * 0.8)
+        x_train, x_test = x[:train_size], x[train_size:]
+        y_train, y_test = y[:train_size], y[train_size:]
+
+        # Build the LSTM model with an explicit Input layer
+        model = Sequential([
+            Input(shape=(look_back, 1)),  # Define the input shape explicitly
+            LSTM(50),
+            Dropout(0.2),
+            Dense(1)  # Single output for regression
+        ])
+
+        model.compile(optimizer='adam', loss='mse')
+        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1)
+
+        # Predictions
+        predicted = model.predict(x_test)
+        nn_predictions = scaler.inverse_transform(predicted)  # Inverse scaling
+        y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+        # Plot actual vs predicted
+        plt.plot(y_test, label="Actual")
+        plt.plot(nn_predictions, label="Predicted")
+        plt.legend()
+        plt.show()
+        return y_test, nn_predictions
