@@ -4,6 +4,7 @@ from pandas import DataFrame
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from typing import Union, Any
 
+
 class Multicollinearity:
     def __init__(self, scaled_df: pd.DataFrame, y: pd.Series, verbose: bool = True) -> None:
         """

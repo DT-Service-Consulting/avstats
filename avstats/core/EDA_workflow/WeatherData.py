@@ -3,6 +3,7 @@ from meteostat import Daily, Point
 import pandas as pd
 from datetime import datetime
 
+
 class WeatherData:
     def __init__(self, df):
         self.df = df
@@ -28,9 +29,6 @@ class WeatherData:
     def assign_coordinates(self):
         """
         Assigns latitude and longitude to departure and arrival airports in the DataFrame.
-
-        Args:
-            df (pd.DataFrame): DataFrame containing 'dep_iata_code' and 'arr_iata_code'.
 
         Returns:
             pd.DataFrame: Updated DataFrame with latitude and longitude for departure and arrival.

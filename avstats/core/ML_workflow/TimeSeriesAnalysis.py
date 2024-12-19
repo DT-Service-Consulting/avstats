@@ -6,17 +6,24 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
+
 
 def adf_test(series):
     """
     Perform Augmented Dickey-Fuller test and return the p-value.
     """
+    if not isinstance(series, (pd.Series, list, np.ndarray)):
+        raise ValueError("Input series must be a pandas Series, list, or numpy array.")
+
     adf_result = adfuller(series)
-    return adf_result[1]  # Return the p-value of the ADF test
+    if isinstance(adf_result, tuple) and len(adf_result) > 1:
+        return adf_result[1]  # P-value
+    else:
+        raise ValueError("Unexpected output from adfuller: {}".format(adf_result))  # Return the p-value of the ADF test
 
 class TimeSeriesAnalysis:
     def __init__(self, df, start_date, end_date, train_end, test_end, column, date_column):
@@ -29,10 +36,10 @@ class TimeSeriesAnalysis:
         self.end_date = end_date
 
         # Ensure the date column is a datetime object
-        #self.df[date_column] = pd.to_datetime(self.df[date_column])
+        self.df[date_column] = pd.to_datetime(self.df[date_column])
 
         # Set the date column as the index and ensure frequency
-        #self.df.set_index(date_column, inplace=True)
+        self.df.set_index(date_column, inplace=True)
         self.df = self.df.asfreq('D')
 
     def check_stationarity(self, max_diffs=2):
@@ -154,12 +161,12 @@ class NeuralNetworks:
         scaled_values = scaler.fit_transform(values.reshape(-1, 1))
 
         # Create sliding windows
-        def create_dataset(data, look_back=1):
-            x, y = [], []
-            for i in range(len(data) - look_back - 1):
-                x.append(data[i:(i + look_back), 0])
-                y.append(data[i + look_back, 0])
-            return np.array(x), np.array(y)
+        def create_dataset(data, lookback=1):
+            x_nn, y_nn = [], []
+            for i in range(len(data) - lookback - 1):
+                x_nn.append(data[i:(i + lookback), 0])
+                y_nn.append(data[i + lookback, 0])
+            return np.array(x_nn), np.array(y_nn)
 
         look_back = 10  # Number of past days used for prediction
         x, y = create_dataset(scaled_values, look_back)

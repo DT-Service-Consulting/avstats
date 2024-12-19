@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
 
+
 class ResidualAnalysis:
     def __init__(self, model, y_pred, residuals):
         self.model = model

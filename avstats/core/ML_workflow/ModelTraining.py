@@ -7,6 +7,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
+
 class ModelTraining:
     def __init__(self, x_train, y_train, x_test, y_test):
         """
