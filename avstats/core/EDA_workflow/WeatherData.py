@@ -2,14 +2,17 @@
 from meteostat import Daily, Point
 import pandas as pd
 from datetime import datetime
-
+from airportsdata import load # (pip install airportsdata)
 
 class WeatherData:
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame):
+        """
+        Initialize the WeatherData class with a DataFrame.
+        """
         self.df = df
         self.weather_records = []
         self.weather_df = None
-        self.airports = {}  # Airports dictionary is initialized for test
+        self.airports = load('IATA')  # Load airport data once during initialization
 
     def get_coordinates(self, iata_code: str):
         """
@@ -35,13 +38,15 @@ class WeatherData:
         """
         print("Assigning coordinates...")
 
-        # Create latitude and longitude columns for both departure and arrival
-        self.df[['dep_lat', 'dep_lon']] = self.df['dep_iata_code'].apply(
-            lambda x: pd.Series(self.get_coordinates(x)))
-        self.df[['arr_lat', 'arr_lon']] = self.df['arr_iata_code'].apply(
-            lambda x: pd.Series(self.get_coordinates(x)))
+        # Vectorized approach using map
+        dep_coords = self.df['dep_iata_code'].map(lambda x: self.get_coordinates(x))
+        arr_coords = self.df['arr_iata_code'].map(lambda x: self.get_coordinates(x))
 
-        # Check for missing values and print a message
+        # Split tuples into separate latitude and longitude columns
+        self.df['dep_lat'], self.df['dep_lon'] = zip(*dep_coords)
+        self.df['arr_lat'], self.df['arr_lon'] = zip(*arr_coords)
+
+        # Check for missing values
         missing_dep_coords = self.df[self.df['dep_lat'].isnull() | self.df['dep_lon'].isnull()]
         missing_arr_coords = self.df[self.df['arr_lat'].isnull() | self.df['arr_lon'].isnull()]
 
