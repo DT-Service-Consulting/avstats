@@ -2,7 +2,10 @@
 from meteostat import Daily, Point
 import pandas as pd
 from datetime import datetime
+from collections import defaultdict
 from airportsdata import load # (pip install airportsdata)
+import time
+
 
 class WeatherData:
     def __init__(self, df: pd.DataFrame):
@@ -14,6 +17,13 @@ class WeatherData:
         self.weather_df = None
         self.airports = load('IATA')  # Load airport data once during initialization
 
+        # Custom coordinates for missing airports
+        self.custom_coords = {
+            'KIV': (46.9279, 28.9303),  # Chișinău International Airport
+            'CQM': (30.1225, 31.4041),  # Cluj International Airport
+            'SZY': (53.4841, 20.7465),  # Olsztyn-Mazury Airport
+        }
+
     def get_coordinates(self, iata_code: str):
         """
         Retrieve latitude and longitude for a given IATA code.
@@ -24,6 +34,11 @@ class WeatherData:
         Returns:
             tuple: Latitude and longitude of the airport, or (None, None) if not found.
         """
+        # Check custom coordinates first
+        if iata_code in self.custom_coords:
+            return self.custom_coords[iata_code]
+
+        # Fall back to airportsdata library
         airport_info = self.airports.get(iata_code)
         if airport_info:
             return airport_info['lat'], airport_info['lon']
@@ -50,7 +65,6 @@ class WeatherData:
         missing_dep_coords = self.df[self.df['dep_lat'].isnull() | self.df['dep_lon'].isnull()]
         missing_arr_coords = self.df[self.df['arr_lat'].isnull() | self.df['arr_lon'].isnull()]
 
-        print("DataFrame after assigning coordinates:", self.df.head())
         if not missing_dep_coords.empty:
             print(
                 f"Missing coordinates for departure airports in the following routes:\n{missing_dep_coords[['dep_iata_code']]}")
@@ -88,6 +102,54 @@ class WeatherData:
 
         print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
 
+        # Iterate over unique coordinates, fetching weather data
+        for i, row in all_coords.iterrows():
+            lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
+            point = Point(lat, lon)
+
+            try:
+                weather_data = Daily(point, start_date, end_date).fetch()
+                if not weather_data.empty:
+                    weather_data = weather_data.reset_index(drop=False)  # Reset index to include time
+                    weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
+                    self.weather_records.append(weather_data)
+
+                if (i + 1) % 100 == 0:
+                    print(f"Fetched weather for {i + 1} / {len(all_coords)} coordinates.")
+
+            except Exception as e:
+                print(f"Error fetching data for {lat}, {lon}, {iata_code}: {e}")
+
+        # Combine all fetched weather data into a single DataFrame
+        self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
+        print(f"Weather data fetching completed with {len(self.weather_df)} records.")
+        """
+        # Ensure datetime format for all date fields
+        self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
+        self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
+
+        # Extract unique dates for both departure and arrival
+        unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
+        unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates if pd.notnull(d)]
+        start_date, end_date = min(unique_dates), max(unique_dates)
+
+        # Extract unique departure and arrival coordinates
+        unique_dep_coords = self.df[['dep_lat', 'dep_lon', 'dep_iata_code']].drop_duplicates()
+        unique_arr_coords = self.df[['arr_lat', 'arr_lon', 'arr_iata_code']].drop_duplicates()
+
+        # Add a column to identify if the row is a departure or arrival coordinate
+        unique_dep_coords['type'] = 'dep'
+        unique_arr_coords['type'] = 'arr'
+
+        # Rename columns for merging purposes
+        unique_dep_coords.columns = ['lat', 'lon', 'iata_code', 'type']
+        unique_arr_coords.columns = ['lat', 'lon', 'iata_code', 'type']
+
+        # Concatenate and drop duplicates
+        all_coords = pd.concat([unique_dep_coords, unique_arr_coords]).drop_duplicates()
+
+        print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
+
         # Iterate over unique coordinates, fetching for the full date range
         for i, row in all_coords.iterrows():
             lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
@@ -95,6 +157,7 @@ class WeatherData:
 
             try:
                 weather_data = Daily(point, start_date, end_date).fetch()
+                time.sleep(0.3)
                 if not weather_data.empty:
                     #weather_data['time'] = weather_data.index  # Use the index as 'time' if necessary.
                     weather_data = weather_data.reset_index(drop=False)  # Reset only after ensuring time column
@@ -110,7 +173,7 @@ class WeatherData:
         self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
         print(self.weather_df)
         print("Weather data fetching completed.")
-
+"""
     def merge_weather_with_flights(self) -> pd.DataFrame:
         """
         Merges the flight data with the corresponding weather data for both
