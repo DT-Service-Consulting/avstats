@@ -18,7 +18,7 @@ scikit-learn = "^1.5.2"
 pytest = "^8.3.3"
 meteostat = "^1.6.8"
 tensorflow = "^2.18.0"
-airportsdata = "^2023.4.8"
+airportsdata = "^20241001"
 
 
 [build-system]
