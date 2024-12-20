@@ -38,13 +38,19 @@ class DataProcessing:
         # Feature engineering
         self.df['dep_delay_15'] = (self.df['dep_delay'] > 15).astype(int)
         self.df['dep_delay_cat'] = pd.cut(
-            self.df['dep_delay'], bins=[-float('inf'), 15, 60, float('inf')], labels=['Short', 'Medium', 'Long']
-        )
+            self.df['dep_delay'], bins=[-float('inf'), 15, 60, float('inf')], labels=['Short', 'Medium', 'Long'])
+
         self.df['flight_cat'] = self.df.apply(
-            lambda row: NewFeatures.categorize_flight(row['cargo'], row['private']), axis=1
-        )
-        self.df['dep_time_window'] = self.df['adt'].dt.hour.apply(NewFeatures.get_time_window)
-        self.df['arr_time_window'] = self.df['aat'].dt.hour.apply(NewFeatures.get_time_window)
+            lambda row: NewFeatures.categorize_flight(row['cargo'], row['private']), axis=1)
+
+        self.df['dep_time_window'] = self.df['adt'].apply(
+            lambda x: NewFeatures.get_time_window(x.hour) if pd.notnull(x) else None)
+
+        self.df['arr_time_window'] = self.df['aat'].apply(
+            lambda x: NewFeatures.get_time_window(x.hour) if pd.notnull(x) else None)
+
+        #self.df['dep_time_window'] = self.df['adt'].dt.hour.apply(NewFeatures.get_time_window)
+        #self.df['arr_time_window'] = self.df['aat'].dt.hour.apply(NewFeatures.get_time_window)
         self.df['on_time_15'] = (self.df['dep_delay'] < 15).astype(int)
 
         return self.df

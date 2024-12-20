@@ -127,6 +127,10 @@ class WeatherData:
         Returns:
             pd.DataFrame: Merged DataFrame containing flight and weather information.
         """
+        # Ensure 'adt' and 'aat' columns are in datetime format
+        self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
+        self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
+
         # Ensure 'time' column in weather_df is in datetime format for merging
         self.weather_df['time'] = pd.to_datetime(self.weather_df['time']).dt.date
         self.df['adt_date'] = self.df['adt'].dt.date

@@ -26,10 +26,14 @@ class NewFeatures:
 
         Returns:
         str: The time window.
+
+        Raises:
+        ValueError: If the hour is not between 0 and 23.
         """
+        if hour < 0 or hour > 23:
+            raise ValueError("Hour must be between 0 and 23")
         if hour < 12:
             return 'Morning'
         elif hour < 18:
             return 'Afternoon'
         return 'Evening'
-

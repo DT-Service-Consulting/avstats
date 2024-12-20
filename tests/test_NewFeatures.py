@@ -1,38 +1,34 @@
 import pytest
-import pandas as pd
 from avstats.core.EDA_workflow.NewFeatures import NewFeatures
 
 
-@pytest.fixture
-def sample_flight():
-    return NewFeatures(
-        uuid="12345",
-        dep_delay=10,
-        sdt=pd.Timestamp("2023-10-01 08:00:00"),
-        sat=pd.Timestamp("2023-10-01 10:00:00"),
-        cargo=False,
-        private=False
-    )
+class TestNewFeatures:
+    @pytest.mark.parametrize("cargo, private, expected", [
+        (True, False, 'Cargo'),
+        (False, True, 'Private'),
+        (False, False, 'Commercial'),
+        (True, True, 'Cargo')  # Assuming cargo takes precedence
+    ])
+    def test_categorize_flight(self, cargo, private, expected):
+        assert NewFeatures.categorize_flight(cargo, private) == expected
 
+    @pytest.mark.parametrize("hour, expected", [
+        (0, 'Morning'),
+        (6, 'Morning'),
+        (11, 'Morning'),
+        (12, 'Afternoon'),
+        (15, 'Afternoon'),
+        (17, 'Afternoon'),
+        (18, 'Evening'),
+        (21, 'Evening'),
+        (23, 'Evening')
+    ])
+    def test_get_time_window(self, hour, expected):
+        assert NewFeatures.get_time_window(hour) == expected
 
-def test_categorize_flight(sample_flight):
-    result = sample_flight.categorize_flight()
-    expected = "Commercial"
-    assert result == expected, f"Expected {expected}, but got {result}"
+    def test_get_time_window_invalid_hour(self):
+        with pytest.raises(ValueError):
+            NewFeatures.get_time_window(-1)
+        with pytest.raises(ValueError):
+            NewFeatures.get_time_window(24)
 
-
-def test_get_time_window_departure(sample_flight):
-    result = sample_flight.get_time_window(time_type='departure')
-    expected = "Morning"
-    assert result == expected, f"Expected {expected}, but got {result}"
-
-
-def test_get_time_window_arrival(sample_flight):
-    result = sample_flight.get_time_window(time_type='arrival')
-    expected = "Morning"
-    assert result == expected, f"Expected {expected}, but got {result}"
-
-
-def test_get_time_window_invalid(sample_flight):
-    with pytest.raises(ValueError, match="time_type must be either 'departure' or 'arrival'."):
-        sample_flight.get_time_window(time_type='invalid')

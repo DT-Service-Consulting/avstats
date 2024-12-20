@@ -21,6 +21,13 @@ class FlightPerformance:
         dict: Overall performance metrics.
         """
         total_flights = len(self.df)
+        if total_flights == 0:
+            return {
+                "Delayed Flights (%)": 0,
+                "On-Time Flights (%)": 0,
+                "Missing Status (%)": 0,
+            }
+
         delayed = self.df['dep_delay_15'].sum()
         on_time = self.df['on_time_15'].sum()
         missing = total_flights - (delayed + on_time)
@@ -42,7 +49,11 @@ class FlightPerformance:
         dict: Delay range summaries.
         """
         total_flights = len(self.df)
+        if total_flights == 0:
+            return {f"{lower}-{upper} minutes": 0 for lower, upper in delay_ranges}
+
         return {
-            f"{lower}-{upper} minutes": ((self.df['dep_delay'] > lower) & (self.df['dep_delay'] <= upper)).sum() / total_flights * 100
+            f"{lower}-{upper} minutes": ((self.df['dep_delay'] > lower) & (
+                        self.df['dep_delay'] <= upper)).sum() / total_flights * 100
             for lower, upper in delay_ranges
         }
