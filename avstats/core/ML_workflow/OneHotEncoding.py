@@ -51,17 +51,26 @@ class OneHotEncoding:
     def clean_data(self):
         """
         Removes columns in the encoded dataframe where all values are zero
-        and converts 'total_passengers' to numeric
+        and converts 'total_passengers' to numeric.
 
         Returns:
         pd.DataFrame: The dataframe with zero-only columns removed.
         """
-        df_reduced = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)]
+        # Ensure 'total_passengers' is retained
+        if 'total_passengers' not in self.df_encoded.columns:
+            raise KeyError("'total_passengers' column is missing from the dataframe.")
+
+        # Remove columns where all values are zero
+        non_zero_columns = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)]
+
+        # Ensure 'total_passengers' is in the dataframe
+        if 'total_passengers' not in non_zero_columns.columns:
+            non_zero_columns['total_passengers'] = self.df_encoded['total_passengers']
 
         # Convert 'total_passengers' to numeric, coercing errors to NaN
-        df_reduced.loc[:, 'total_passengers'] = pd.to_numeric(df_reduced['total_passengers'], errors='coerce')
+        non_zero_columns['total_passengers'] = pd.to_numeric(non_zero_columns['total_passengers'], errors='coerce')
 
         # Select only numeric columns
-        df_numeric = df_reduced.select_dtypes(include=['number'])
+        df_numeric = non_zero_columns.select_dtypes(include=['number'])
 
         return df_numeric
