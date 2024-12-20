@@ -1,9 +1,9 @@
-# FlightDataAggregator.py
+# MergeData.py
 import pandas as pd
 import numpy as np
 
 
-class FlightDataAggregator:
+class MergeData:
     def __init__(self, df):
         """
         Initialize the class with a DataFrame.
