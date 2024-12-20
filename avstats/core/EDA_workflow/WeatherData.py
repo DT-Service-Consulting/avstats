@@ -76,10 +76,6 @@ class WeatherData:
         return self.df
 
     def fetch_weather_data(self):
-        # Ensure datetime format for all date fields
-        self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
-        self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
-
         # Extract unique dates for both departure and arrival
         unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
         unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates if pd.notnull(d)]
@@ -99,7 +95,6 @@ class WeatherData:
 
         # Concatenate and drop duplicates
         all_coords = pd.concat([unique_dep_coords, unique_arr_coords]).drop_duplicates()
-
         print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
 
         # Iterate over unique coordinates, fetching weather data
@@ -123,57 +118,7 @@ class WeatherData:
         # Combine all fetched weather data into a single DataFrame
         self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
         print(f"Weather data fetching completed with {len(self.weather_df)} records.")
-        """
-        # Ensure datetime format for all date fields
-        self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
-        self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
 
-        # Extract unique dates for both departure and arrival
-        unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
-        unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates if pd.notnull(d)]
-        start_date, end_date = min(unique_dates), max(unique_dates)
-
-        # Extract unique departure and arrival coordinates
-        unique_dep_coords = self.df[['dep_lat', 'dep_lon', 'dep_iata_code']].drop_duplicates()
-        unique_arr_coords = self.df[['arr_lat', 'arr_lon', 'arr_iata_code']].drop_duplicates()
-
-        # Add a column to identify if the row is a departure or arrival coordinate
-        unique_dep_coords['type'] = 'dep'
-        unique_arr_coords['type'] = 'arr'
-
-        # Rename columns for merging purposes
-        unique_dep_coords.columns = ['lat', 'lon', 'iata_code', 'type']
-        unique_arr_coords.columns = ['lat', 'lon', 'iata_code', 'type']
-
-        # Concatenate and drop duplicates
-        all_coords = pd.concat([unique_dep_coords, unique_arr_coords]).drop_duplicates()
-
-        print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
-
-        # Iterate over unique coordinates, fetching for the full date range
-        for i, row in all_coords.iterrows():
-            lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
-            point = Point(lat, lon)
-
-            try:
-                weather_data = Daily(point, start_date, end_date).fetch()
-                time.sleep(0.3)
-                if not weather_data.empty:
-                    #weather_data['time'] = weather_data.index  # Use the index as 'time' if necessary.
-                    weather_data = weather_data.reset_index(drop=False)  # Reset only after ensuring time column
-                    weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
-                    self.weather_records.append(weather_data)
-
-                if (i + 1) % 100 == 0:
-                    print(f"Fetched weather for {i + 1} / {len(all_coords)} coordinates.")
-
-            except Exception as e:
-                print(f"Error fetching data for {lat}, {lon}, {iata_code}: {e}")
-
-        self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
-        print(self.weather_df)
-        print("Weather data fetching completed.")
-"""
     def merge_weather_with_flights(self) -> pd.DataFrame:
         """
         Merges the flight data with the corresponding weather data for both
@@ -186,8 +131,6 @@ class WeatherData:
         self.weather_df['time'] = pd.to_datetime(self.weather_df['time']).dt.date
         self.df['adt_date'] = self.df['adt'].dt.date
         self.df['aat_date'] = self.df['aat'].dt.date
-
-
         print("adt and aat were successfully turned into datetime format.")
 
         # Merge departure city weather data
@@ -197,7 +140,6 @@ class WeatherData:
             'snow': 'snow_dep', 'wdir': 'wdir_dep', 'wspd': 'wspd_dep', 'wpgt': 'wpgt_dep',
             'pres': 'pres_dep', 'tsun': 'tsun_dep', 'lat': 'dep_lat', 'lon': 'dep_lon'
         })
-        print("Departure weather data:", dep_weather.head())
 
         # Merge arrival city weather data
         arr_weather = self.weather_df.rename(columns={
@@ -206,13 +148,10 @@ class WeatherData:
             'snow': 'snow_arr', 'wdir': 'wdir_arr', 'wspd': 'wspd_arr', 'wpgt': 'wpgt_arr',
             'pres': 'pres_arr', 'tsun': 'tsun_arr', 'lat': 'arr_lat', 'lon': 'arr_lon'
         })
-        print("Arrival weather data:", arr_weather.head())
 
         # Merge with arrival weather data on arr_iata_code and aat_date
         self.df = pd.merge(self.df, dep_weather, on=['dep_iata_code', 'adt_date'], how='left')
-        print("After merging departure weather:", self.df.head())
         self.df = pd.merge(self.df, arr_weather, on=['arr_iata_code', 'aat_date'], how='left')
-        print("After merging arrival weather:", self.df.head())
 
         # Drop auxiliary date columns if no longer needed
         self.df.drop(columns=['adt_date', 'aat_date'], inplace=True)

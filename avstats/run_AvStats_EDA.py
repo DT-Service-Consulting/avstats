@@ -14,7 +14,7 @@ sys.path.append(str(BASE_DIR / 'core'))
 
 try:
     from core.config import PARAM_GRID_RF
-    from core.EDA_workflow.CheckMissingValues import DataCleaning
+    from core.EDA_workflow.DataProcessing import DataCleaning
     from core.EDA_workflow.WeatherData import WeatherData
     from core.EDA_workflow.FlightPerformance import FlightPerformance
 except ModuleNotFoundError as e:
