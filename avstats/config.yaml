@@ -1,3 +1,4 @@
 data_paths:
   avstats: "../data/avStats_schedule_historical_2023_BRU.csv"
   passengers: "../data/avia_par_be_page_spreadsheet.xlsx"
+  airport_mapping: "../avstats/core/airport_mapping.json"

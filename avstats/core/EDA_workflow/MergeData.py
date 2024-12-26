@@ -12,6 +12,7 @@ class MergeData:
             df (pd.DataFrame): Input DataFrame with flight and weather data.
         """
         self.df = df.copy()
+        self.df_grouped = None
 
     def preprocess_datetime(self, datetime_col):
         """
@@ -33,8 +34,12 @@ class MergeData:
         Returns:
             pd.DataFrame: Aggregated daily data grouped by route and date.
         """
-        aggregated_df = (
-            self.df.groupby(['route_iata_code', 'Date'])
+        # Extract month in 'YYYY-MM' format from 'sdt'
+        self.df['Month'] = pd.to_datetime(self.df['sdt']).dt.to_period('M')
+
+        # Group by route and month, aggregate necessary metrics
+        self.df_grouped = (
+            self.df.groupby(['route_iata_code', 'Month'])
             .agg(
                 total_flights=('uuid', 'count'),
 
@@ -99,4 +104,24 @@ class MergeData:
             )
             .reset_index()
         )
-        return aggregated_df
+        return self.df_grouped
+
+    def aggregate_passengers(self, df_passengers):
+        # Reshape to long format
+        df_passengers_long = pd.melt(
+            df_passengers,
+            id_vars='route_code',
+            var_name='Month',
+            value_name='total_passengers'
+        )
+        # Convert Month to 'YYYY-MM' format
+        df_passengers_long['Month'] = pd.to_datetime(df_passengers_long['Month'], format='%Y-%m').dt.to_period('M')
+
+        df_merged = pd.merge(
+            self.df_grouped,
+            df_passengers_long,
+            left_on=['route_iata_code', 'Month'],
+            right_on=['route_code', 'Month'],
+            how='inner'
+        )
+        return df_merged

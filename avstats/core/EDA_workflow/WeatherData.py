@@ -1,10 +1,11 @@
 # WeatherData.py
-from meteostat import Daily, Point
 import pandas as pd
-from datetime import datetime
-from collections import defaultdict
-from airportsdata import load # (pip install airportsdata)
+import warnings
 import time
+from meteostat import Daily, Point
+from datetime import datetime
+from airportsdata import load # (pip install airportsdata)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class WeatherData:
@@ -101,11 +102,49 @@ class WeatherData:
         for i, row in all_coords.iterrows():
             lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
             point = Point(lat, lon)
+            retries = 3  # Number of retries for each fetch
+
+            for attempt in range(retries):
+                try:
+                    # Fetch weather data
+                    weather_data = Daily(point, start_date, end_date).fetch()
+
+                    # Check if data is not empty
+                    if not weather_data.empty:
+                        weather_data = weather_data.reset_index(drop=False)
+                        weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
+                        self.weather_records.append(weather_data)
+
+                    # Break out of retry loop if successful
+                    break
+
+                except Exception as e:
+                    print(f"Attempt {attempt + 1}/{retries}: Error fetching data for {lat}, {lon}, {iata_code}: {e}")
+                    time.sleep(1)  # Wait before retrying
+
+                    # Log failure after all retries fail
+                    if attempt == retries - 1:
+                        with open("failed_coordinates.log", "a") as log_file:
+                            log_file.write(f"{lat},{lon},{iata_code}\n")
+
+            # Progress update
+            if (i + 1) % 100 == 0:
+                print(f"Fetched weather for {i + 1} / {len(all_coords)} coordinates.")
+
+            # Optional: Sleep to avoid API throttling
+            time.sleep(0.1)  # Adjust as needed for API limits
+
+        """
+        # Iterate over unique coordinates, fetching weather data
+        for i, row in all_coords.iterrows():
+            time.sleep(0.1)  # Adjust based on API limits
+            lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
+            point = Point(lat, lon)
 
             try:
                 weather_data = Daily(point, start_date, end_date).fetch()
                 if not weather_data.empty:
-                    weather_data = weather_data.reset_index(drop=False)  # Reset index to include time
+                    weather_data = weather_data.reset_index(drop=False)
                     weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
                     self.weather_records.append(weather_data)
 
@@ -114,6 +153,9 @@ class WeatherData:
 
             except Exception as e:
                 print(f"Error fetching data for {lat}, {lon}, {iata_code}: {e}")
+                with open("failed_coordinates.log", "a") as log_file:
+                    log_file.write(f"{lat},{lon},{iata_code}\n")
+            """
 
         # Combine all fetched weather data into a single DataFrame
         self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
