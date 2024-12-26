@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from avstats.core.flight_analysis_utils import calculate_time_window_percentages
+from avstats.core.EDA_utils import calculate_time_window_percentages
 
 
 @pytest.fixture

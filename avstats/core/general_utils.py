@@ -6,8 +6,9 @@ These functions perform basic computations and data manipulations, such as calcu
 specific conditions within DataFrames.
 They can be used in different contexts within AvStats and beyond.
 """
-
 import pandas as pd
+import os
+
 
 def calc_percentage(part: int, whole: int) -> float:
     """
@@ -37,3 +38,12 @@ def count_delayed_flights(df: pd.DataFrame, lower: int, upper: int = None) -> in
     if upper:
         return df[(df['dep_delay_15'] > lower) & (df['dep_delay_15'] <= upper)]['uuid'].count()
     return df[df['dep_delay_15'] > lower]['uuid'].count()
+
+def save_dataframe(df, filename):
+    # Define the path to save the file
+    data_folder = os.path.join("..", "data")  # Adjust the path if needed
+    file_path = os.path.join(data_folder, f"{filename}.csv")
+
+    # Save the DataFrame as a CSV file
+    df.to_csv(file_path, index=False)
+    print(f"DataFrame saved to {file_path}")
