@@ -2,7 +2,6 @@ import pytest
 import pandas as pd
 from avstats.core.EDA_workflow.MergeData import MergeData
 
-
 @pytest.fixture
 def sample_data():
     """Fixture to create a sample DataFrame for testing."""
@@ -37,31 +36,52 @@ def sample_data():
         'wpgt_arr': [2.5, 3.5, 1.5, None],
         'pres_arr': [1014, 1012, 1011, None],
         'tsun_arr': [110, 210, 310, None],
-        'datetime': ['2023-12-01T08:00:00', '2023-12-01T12:00:00', '2023-12-02T18:00:00', '2023-12-02T20:00:00']
+        'sdt': ['2023-12-01T08:00:00', '2023-12-01T12:00:00', '2023-12-02T18:00:00', '2023-12-02T20:00:00']
     }
     return pd.DataFrame(data)
 
 def test_preprocess_datetime(sample_data):
     """Test the preprocess_datetime method."""
     merge_data = MergeData(sample_data)
-    merge_data.preprocess_datetime('datetime')
+    merge_data.preprocess_datetime('sdt')
 
     assert 'Date' in merge_data.df.columns
-    assert pd.to_datetime(merge_data.df['datetime'], errors='coerce').notna().all()
+    assert pd.to_datetime(merge_data.df['sdt'], errors='coerce').notna().all()
     assert merge_data.df['Date'].dtype == 'object'
-
 
 def test_aggregate_daily(sample_data):
     """Test the aggregate_daily method."""
     merge_data = MergeData(sample_data)
-    merge_data.preprocess_datetime('datetime')
+    merge_data.preprocess_datetime('sdt')
     aggregated_df = merge_data.aggregate_daily()
 
     assert isinstance(aggregated_df, pd.DataFrame)
     assert 'route_iata_code' in aggregated_df.columns
+    assert 'Month' in aggregated_df.columns
     assert 'total_flights' in aggregated_df.columns
 
     # Check specific aggregations
-    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'AA101', 'total_flights'].values[0] == 2
-    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'BB202', 'departures'].values[0] == 1
-    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'BB202', 'total_flight_distance_km'].values[0] == 1500
+    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'AA101', 'total_flights'].iloc[0] == 2
+    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'BB202', 'total_flights'].iloc[0] == 2
+    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'AA101', 'departures'].iloc[0] == 1
+    assert aggregated_df.loc[aggregated_df['route_iata_code'] == 'BB202', 'total_flight_distance_km'].iloc[0] == 1500
+
+def test_aggregate_passengers(sample_data):
+    """Test the aggregate_passengers method."""
+    merge_data = MergeData(sample_data)
+    merge_data.preprocess_datetime('sdt')
+    aggregated_df = merge_data.aggregate_daily()
+
+    # Create a mock passengers DataFrame
+    df_passengers = pd.DataFrame({
+        'route_code': ['AA101', 'BB202'],
+        '2023-12': [100, 200]
+    })
+
+    merged_df = merge_data.aggregate_passengers(df_passengers)
+
+    assert isinstance(merged_df, pd.DataFrame)
+    assert 'route_iata_code' in merged_df.columns
+    assert 'total_passengers' in merged_df.columns
+    assert merged_df.loc[merged_df['route_iata_code'] == 'AA101', 'total_passengers'].iloc[0] == 100
+    assert merged_df.loc[merged_df['route_iata_code'] == 'BB202', 'total_passengers'].iloc[0] == 200
