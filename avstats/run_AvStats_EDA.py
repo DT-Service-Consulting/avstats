@@ -1,9 +1,8 @@
 import logging
-import pandas as pd
 import os
 import sys
 from pathlib import Path
-from sklearn.model_selection import train_test_split
+import warnings
 
 # Add the base path to sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,10 +12,14 @@ LOG_DIR.mkdir(exist_ok=True)  # Create logs directory if it doesn't exist
 sys.path.append(str(BASE_DIR / 'core'))
 
 try:
-    from core.config import PARAM_GRID_RF
-    from core.EDA_workflow.DataProcessing import DataCleaning
-    from core.EDA_workflow.WeatherData import WeatherData
+    from core.DataLoader import DataLoader
+    from core.EDA_workflow.DataProcessing import DataProcessing
     from core.EDA_workflow.FlightPerformance import FlightPerformance
+    from core.EDA_workflow.WeatherData import WeatherData
+    from core.EDA_workflow.MergeData import MergeData
+    from core.EDA_workflow.PassengerData import PassengerData
+    from avstats.core.EDA_utils import *
+    from avstats.core.general_utils import *
 except ModuleNotFoundError as e:
     print(f"Error: {e}")
     print(f"Current working directory: {os.getcwd()}")
@@ -35,41 +38,71 @@ logging.basicConfig(
 
 def main():
     try:
-        logging.info("Starting Flight and Weather Data Processing Pipeline...")
+        logging.info("Starting Exploratory Data Analysis Pipeline...")
 
         # Load the dataset
-        file_path = DATA_DIR / "df_merged.csv"
-        if not file_path.exists():
-            raise FileNotFoundError(f"Dataset not found at {file_path}")
-        df = pd.read_csv(file_path)
-        logging.info("Dataset loaded successfully.")
+        data_loader = DataLoader(config_path='config.yaml')
+        df_avstats, df_passengers, airport_mapping = data_loader.load_data()
 
-        # Step 1: Data Cleaning
-        cleaner = DataCleaning(unique_column='uuid')
-        missing_values, duplicate_rows, missing_by_column = cleaner.check_missing_and_duplicates(df)
-        logging.info(f"Missing Values: {missing_values}, Duplicate Rows: {len(duplicate_rows)}")
+        if df_avstats is None or df_passengers is None or airport_mapping is None:
+            raise SystemExit("Data files are missing or failed to load. Please check your configuration.")
 
-        # Step 2: Assign Coordinates
-        weather_data = WeatherData(df)
-        df_with_coords = weather_data.assign_coordinates()
-        logging.info("Coordinates assigned successfully.")
+        # Step 1: Data Processing
+        data_processing = DataProcessing(df_avstats, unique_column='uuid')
+        df = data_processing.preprocess_avstats()
+        logging.info(f"Data was processed successfully")
 
-        # Step 3: Fetch and Merge Weather Data
-        weather_data.fetch_weather_data()
-        df_weather_merged = weather_data.merge_weather_with_flights()
+        # Step 2: Check for missing values
+        quality_metrics = data_processing.check_missing_and_duplicates(df)
+        logging.info(f"Missing Values: {quality_metrics['missing_values']}, "
+                     f"Duplicate Rows: {quality_metrics['duplicate_rows']}, "
+                     f"Missing by Column: {quality_metrics['missing_by_column']}")
+
+        # Step 3: Performance Summary
+        flight_performance = FlightPerformance(df)
+        performance_metrics = flight_performance.overall_performance()
+        logging.info("Overall Flight Performance Percentage: ")
+        for metric, value in performance_metrics.items():
+            logging.info(f"{metric}: {value:.2f}%")
+
+        # Step 4: Delay Ranges
+        delay_ranges = [(0, 60), (60, 120), (120, 180), (180, float('inf'))]
+        delay_summary = flight_performance.delay_ranges_summary(delay_ranges)
+        logging.info("\nDelay Summary:")
+        for range_label, percentage in delay_summary.items():
+            logging.info(f"Delays {range_label}: {percentage:.2f}%")
+
+        # Step 5: Meteostat (weather)
+        logging.info("Fetching weather data from the Meteostat library...")
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        weather_fetcher = WeatherData(df)
+        weather_fetcher.assign_coordinates().head()
+        weather_fetcher.fetch_weather_data()
+        df_weather_merged = weather_fetcher.merge_weather_with_flights()
+        logging.info("Weather data fetched successfully.")
+
+        # Step 6: Cleaning and merging weather data
+        df_weather_merged = df_weather_merged.drop_duplicates()
+        df_weather_merged = df_weather_merged.dropna(subset=['tavg_dep', 'tavg_arr'])
+        df_weather_merged = df_weather_merged.apply(
+            lambda col: col.astype(str) if col.dtype.name == 'category' else col)
+        df_weather_merged.fillna(0, inplace=True)
+        aggregator = MergeData(df_weather_merged)
+        aggregator.preprocess_datetime('sdt')
+        df_grouped_daily = aggregator.aggregate_daily()
         logging.info("Weather data merged successfully.")
+        save_dataframe(df_grouped_daily, "df_weather")
 
-        # Step 4: Analyze Flight Performance
-        flight_perf = FlightPerformance(df_weather_merged)
-        performance_metrics = flight_perf.overall_performance()
-        logging.info(f"Overall Flight Performance: {performance_metrics}")
-
-        logging.info("Flight and Weather Data Processing Pipeline completed successfully.")
+        # Step 7: Passenger data
+        passengers = PassengerData(df_passengers, airport_mapping)
+        df_passengers_cleaned = passengers.process_passenger_data()
+        df_merged = aggregator.aggregate_passengers(df_passengers_cleaned)
+        logging.info("Passenger data fetched and merged successfully.")
+        save_dataframe(df_merged, "df_merged")
 
     except Exception as e:
         logging.error(f"Error in Flight and Weather Data Processing Pipeline: {e}", exc_info=True)
         raise
-
 
 
 if __name__ == "__main__":
