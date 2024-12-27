@@ -7,9 +7,9 @@ import warnings
 # Add the base path to sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOG_DIR = BASE_DIR / 'logs'
-DATA_DIR = BASE_DIR / 'data'
 LOG_DIR.mkdir(exist_ok=True)  # Create logs directory if it doesn't exist
 sys.path.append(str(BASE_DIR / 'core'))
+
 
 try:
     from core.DataLoader import DataLoader
