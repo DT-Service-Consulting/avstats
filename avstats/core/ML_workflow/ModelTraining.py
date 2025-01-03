@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.tree import DecisionTreeRegressor, export_text, plot_tree
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
@@ -39,6 +40,14 @@ class ModelTraining:
         # Fit the model using statsmodels OLS
         self.model = sm.OLS(self.y_train, x_train_with_const).fit()
         self.y_pred = self.model.predict(x_test_with_const)
+
+        return self.model, self.y_pred
+
+    def train_decision_tree(self):
+        # Initialize the Decision Tree Regressor
+        self.model = DecisionTreeRegressor(max_depth=5, random_state=42)
+        self.model.fit(self.x_train, self.y_train)
+        self.y_pred = self.model.predict(self.x_test)
 
         return self.model, self.y_pred
 
