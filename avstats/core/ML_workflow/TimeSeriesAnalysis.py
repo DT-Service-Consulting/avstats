@@ -8,6 +8,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from datetime import timedelta, datetime
 from typing import Tuple, Optional, List, Union
+from avstats.core.ML_workflow.validators_ML.validator_time_series_analysis import TimeSeriesAnalysisInput
 
 
 def adf_test(series: Union[pd.Series, List[float], np.ndarray]) -> float:
@@ -44,18 +45,21 @@ class TimeSeriesAnalysis:
             column (str): The target column for analysis.
             date_column (str): The column representing dates.
         """
-        self.df = df
-        self.column = column
-        self.date_column = date_column
-        self.train_end = train_end
-        self.test_end = test_end
-        self.start_date = start_date
-        self.end_date = end_date
+        # Validate inputs with Pydantic
+        validated_inputs = TimeSeriesAnalysisInput(df=df, start_date=start_date, end_date=end_date, train_end=train_end,
+                                                   test_end=test_end, column=column, date_column=date_column)
 
-        # Ensure the date column is a datetime object
+        # Store validated inputs
+        self.df = validated_inputs.df
+        self.start_date = validated_inputs.start_date
+        self.end_date = validated_inputs.end_date
+        self.train_end = validated_inputs.train_end
+        self.test_end = validated_inputs.test_end
+        self.column = validated_inputs.column
+        self.date_column = validated_inputs.date_column
+
+        # Set the date column as index and ensure frequency
         self.df[date_column] = pd.to_datetime(self.df[date_column])
-
-        # Set the date column as the index and ensure frequency
         self.df.set_index(date_column, inplace=True)
         self.df = self.df.asfreq('D')
 

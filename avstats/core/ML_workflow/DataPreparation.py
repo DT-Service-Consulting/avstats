@@ -2,6 +2,7 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso
+from avstats.core.ML_workflow.validators_ML.validator_data_preparation import DataPreparationInput
 
 
 class DataPreparation:
@@ -13,8 +14,12 @@ class DataPreparation:
             df (pd.DataFrame): The input data.
             target_variable (str): The name of the target variable column.
         """
-        self.df = df
-        self.target_variable = target_variable # total_dep_delay with routes, dep_delay with weather
+        # Validate inputs using Pydantic
+        validated_inputs = DataPreparationInput(df=df, target_variable=target_variable)
+
+        # Store validated input
+        self.df = validated_inputs.df
+        self.target_variable = validated_inputs.target_variable # total_dep_delay with routes, dep_delay with weather
         self.x = None
         self.y = None
 

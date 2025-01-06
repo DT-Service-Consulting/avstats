@@ -156,4 +156,3 @@ class ModelTraining:
         self.y_pred = best_model.predict(self.x_test)
 
         return best_model, best_parameters, self.y_pred, sample_sizes, train_errors, test_errors
-
