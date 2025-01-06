@@ -9,14 +9,22 @@ from avstats.core.ML_workflow.ModelEvaluation import cross_validate, evaluate_mo
 def root_mean_squared_error(y_true, y_pred):
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
+
 @pytest.fixture
 def sample_data():
+    """
+    Create sample data for testing.
+    """
     np.random.seed(42)
     x = pd.DataFrame(np.random.rand(100, 3), columns=['feature1', 'feature2', 'feature3'])
     y = x['feature1'] * 3 + x['feature2'] * 2 - x['feature3'] + np.random.normal(0, 0.1, 100)
     return x, y
 
+
 def test_cross_validate(sample_data):
+    """
+    Test the cross-validate function.
+    """
     x_train, y_train = sample_data
 
     # Convert to numpy arrays for compatibility with updated function
@@ -35,7 +43,11 @@ def test_cross_validate(sample_data):
     cv_scores_repeated = cross_validate(x_train_np, y_train_np, cv=5)
     np.testing.assert_array_almost_equal(cv_scores, cv_scores_repeated)
 
+
 def test_evaluate_model(sample_data):
+    """
+    Test the evaluate_model function.
+    """
     x, y = sample_data
 
     # Convert to numpy arrays for compatibility with updated function
@@ -47,6 +59,7 @@ def test_evaluate_model(sample_data):
     predictions = ols_model.predict(sm.add_constant(x_np))
     residuals = y_np - predictions
 
+    # Evaluate model with residuals
     mae, mape, rmse = evaluate_model(y_np, predictions, residuals)
 
     # Validate the computed metrics
@@ -64,4 +77,3 @@ def test_evaluate_model(sample_data):
     assert np.isclose(mae_no_residuals, expected_mae, rtol=1e-5)
     assert np.isclose(rmse_no_residuals, expected_rmse, rtol=1e-5)
     assert mape_no_residuals is None
-

@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from avstats.core.ML_workflow.DataPreparation import DataPreparation
+from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -13,6 +14,7 @@ def sample_dataframe():
         "target": [0, 1, 0, 1, 0]
     }
     return pd.DataFrame(data)
+
 
 def test_standardize_data(sample_dataframe):
     # Initialize DataPreparation instance
@@ -51,19 +53,36 @@ def test_select_important_features(sample_dataframe):
     # Check that x_important only contains selected features
     assert list(x_important.columns) == list(important_features.index), "x_important columns do not match important_features"
 
+
 def test_empty_dataframe():
     # Test with an empty dataframe
     empty_df = pd.DataFrame()
-    dp = DataPreparation(empty_df, target_variable="target")
+    with pytest.raises(ValidationError, match="DataFrame cannot be empty"):
+        DataPreparation(empty_df, target_variable="target")
 
-    with pytest.raises(KeyError):
-        dp.standardize_data()
 
 def test_no_target_column():
     # Test when target column is missing
     data = {"feature1": [1, 2, 3], "feature2": [4, 5, 6]}
     df = pd.DataFrame(data)
-    dp = DataPreparation(df, target_variable="target")
+    with pytest.raises(ValidationError, match="Target variable 'target' is not present in the DataFrame columns"):
+        DataPreparation(df, target_variable="target")
 
-    with pytest.raises(KeyError):
-        dp.standardize_data()
+
+def test_invalid_dataframe_type():
+    # Test when df is not a DataFrame
+    invalid_df = [[1, 2, 3], [4, 5, 6]]
+    with pytest.raises(ValidationError, match="Input must be a pandas DataFrame"):
+        DataPreparation(invalid_df, target_variable="target")
+
+
+def test_invalid_target_variable_type(sample_dataframe):
+    # Test when target_variable is not a string
+    with pytest.raises(ValidationError, match="Input should be a valid string"):
+        DataPreparation(sample_dataframe, target_variable=123)
+
+
+def test_target_variable_not_in_df(sample_dataframe):
+    # Test when target_variable is not in DataFrame columns
+    with pytest.raises(ValidationError, match="Target variable 'nonexistent' is not present in the DataFrame columns"):
+        DataPreparation(sample_dataframe, target_variable="nonexistent")

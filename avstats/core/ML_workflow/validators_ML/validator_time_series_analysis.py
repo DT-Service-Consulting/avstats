@@ -1,5 +1,5 @@
 # core/ML_workflow/validators_ML/validator_time_series_analysis.py
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, field_validator, ConfigDict, ValidationInfo
 import pandas as pd
 from datetime import datetime
 
@@ -15,30 +15,43 @@ class TimeSeriesAnalysisInput(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)  # Set arbitrary_types_allowed
 
-    @field_validator("df", mode="before")
-    def validate_dataframe(cls, df):
-        if not isinstance(df, pd.DataFrame):
-            raise ValueError("Input must be a pandas DataFrame")
-        if df.empty:
-            raise ValueError("DataFrame cannot be empty")
-        return df
+    @field_validator("end_date")
+    def validate_date_range(cls, end_date: datetime, info: ValidationInfo):
+        start_date = info.data.get("start_date")  # Access start_date using info.data
+        if start_date is not None and start_date >= end_date:
+            raise ValueError("start_date must be earlier than end_date")
+        return end_date
 
-    @field_validator("start_date", "end_date", "train_end", "test_end", mode="before")
-    def validate_dates(cls, value):
-        if not isinstance(value, datetime):
-            raise ValueError("Dates must be valid datetime objects")
-        return value
+    @field_validator("train_end")
+    def validate_train_end(cls, train_end: datetime, info: ValidationInfo):
+        start_date = info.data.get("start_date")
+        end_date = info.data.get("end_date")
+        if start_date is not None and train_end < start_date:
+            raise ValueError("train_end must be within the range of start_date and end_date")
+        if end_date is not None and train_end >= end_date:
+            raise ValueError("train_end must be earlier than end_date")
+        return train_end
 
-    @field_validator("column", "date_column")
-    def validate_columns(cls, column, values):
-        df = values.get("df")
+    @field_validator("test_end")
+    def validate_test_end(cls, test_end: datetime, info: ValidationInfo):
+        train_end = info.data.get("train_end")
+        end_date = info.data.get("end_date")
+        if train_end is not None and test_end <= train_end:
+            raise ValueError("test_end must be later than train_end")
+        if end_date is not None and test_end > end_date:
+            raise ValueError("test_end must not exceed end_date")
+        return test_end
+
+    @field_validator("column")
+    def validate_column(cls, column: str, info: ValidationInfo):
+        df = info.data.get("df")
         if df is not None and column not in df.columns:
-            raise ValueError(f"Column '{column}' is not present in the DataFrame columns")
+            raise ValueError(f"Column '{column}' not found in the dataframe")
         return column
 
-    @field_validator("end_date")
-    def validate_date_range(cls, end_date, values):
-        start_date = values.get("start_date")
-        if start_date and end_date <= start_date:
-            raise ValueError("end_date must be after start_date")
-        return end_date
+    @field_validator("date_column")
+    def validate_date_column(cls, date_column: str, info: ValidationInfo):
+        df = info.data.get("df")
+        if df is not None and date_column not in df.columns:
+            raise ValueError(f"Date column '{date_column}' not found in the dataframe")
+        return date_column
