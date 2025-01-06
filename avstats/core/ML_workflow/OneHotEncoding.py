@@ -67,12 +67,15 @@ class OneHotEncoding:
         Raises:
         KeyError: If the 'total_passengers' column is missing from the dataframe.
         """
+        if self.df_encoded is None:
+            raise ValueError("Encoded dataframe is not initialized. Run encode_routes() first.")
+
         # Ensure 'total_passengers' is retained
         if 'total_passengers' not in self.df_encoded.columns:
             raise KeyError("'total_passengers' column is missing from the dataframe.")
 
         # Remove columns where all values are zero
-        non_zero_columns = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)]
+        non_zero_columns = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)].copy()
 
         # Ensure 'total_passengers' is in the dataframe
         if 'total_passengers' not in non_zero_columns.columns:
