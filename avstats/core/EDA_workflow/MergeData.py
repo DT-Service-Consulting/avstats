@@ -14,32 +14,35 @@ class MergeData:
         self.df = df.copy()
         self.df_grouped = None
 
-    def preprocess_datetime(self, datetime_col):
+    def preprocess_datetime(self):
         """
         Preprocess datetime column: ensure timezone-aware and convert to UTC.
 
         Args:
             datetime_col (str): Name of the datetime column to process.
         """
-        self.df[datetime_col] = pd.to_datetime(self.df[datetime_col], errors='coerce')
-        if self.df[datetime_col].dt.tz is None:
-            self.df[datetime_col] = self.df[datetime_col].dt.tz_localize('UTC')
-        self.df[datetime_col] = self.df[datetime_col].dt.tz_convert('UTC').dt.tz_localize(None)
-        self.df['Date'] = self.df[datetime_col].dt.date
+        self.df['sdt'] = pd.to_datetime(self.df['sdt'], errors='coerce')
+        if self.df['sdt'].dt.tz is None:
+            self.df['sdt'] = self.df['sdt'].dt.tz_localize('UTC')
+        self.df['sdt'] = self.df['sdt'].dt.tz_convert('UTC').dt.tz_localize(None)
 
-    def aggregate_daily(self):
+    def aggregate_daily(self, passenger_data=True):
         """
         Perform daily aggregation on the data.
 
         Returns:
             pd.DataFrame: Aggregated daily data grouped by route and date.
         """
-        # Extract month in 'YYYY-MM' format from 'sdt'
-        self.df['Month'] = pd.to_datetime(self.df['sdt']).dt.to_period('M')
+        if passenger_data is True:
+            self.df['Month'] = pd.to_datetime(self.df['sdt']).dt.to_period('M')
+            group_by_col = 'Month'
+        else:
+            self.df['Date'] = self.df['sdt'].dt.date
+            group_by_col = 'Date'
 
         # Group by route and month, aggregate necessary metrics
         self.df_grouped = (
-            self.df.groupby(['route_iata_code', 'Month'])
+            self.df.groupby(['route_iata_code', group_by_col])
             .agg(
                 total_flights=('uuid', 'count'),
 
