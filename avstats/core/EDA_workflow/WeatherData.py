@@ -5,6 +5,7 @@ import time
 from meteostat import Daily, Point
 from datetime import datetime
 from airportsdata import load # (pip install airportsdata)
+from typing import Optional
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
@@ -12,6 +13,9 @@ class WeatherData:
     def __init__(self, df: pd.DataFrame):
         """
         Initialize the WeatherData class with a DataFrame.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing flight schedule information.
         """
         self.df = df
         self.weather_records = []
@@ -25,7 +29,7 @@ class WeatherData:
             'SZY': (53.4841, 20.7465),  # Olsztyn-Mazury Airport
         }
 
-    def get_coordinates(self, iata_code: str):
+    def get_coordinates(self, iata_code: str) -> tuple[Optional[float], Optional[float]]:
         """
         Retrieve latitude and longitude for a given IATA code.
 
@@ -45,9 +49,9 @@ class WeatherData:
             return airport_info['lat'], airport_info['lon']
         return None, None
 
-    def assign_coordinates(self):
+    def assign_coordinates(self) -> pd.DataFrame:
         """
-        Assigns latitude and longitude to departure and arrival airports in the DataFrame.
+        Assign latitude and longitude to departure and arrival airports in the DataFrame.
 
         Returns:
             pd.DataFrame: Updated DataFrame with latitude and longitude for departure and arrival.
@@ -76,7 +80,12 @@ class WeatherData:
 
         return self.df
 
-    def fetch_weather_data(self):
+    def fetch_weather_data(self) -> None:
+        """
+        Fetch weather data for unique departure and arrival coordinates within the schedule's date range.
+
+        This method populates the `weather_records` list with weather data and combines it into a single DataFrame.
+        """
         # Extract unique dates for both departure and arrival
         unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
         unique_dates = [datetime(d.year, d.month, d.day) for d in unique_dates if pd.notnull(d)]
@@ -135,7 +144,7 @@ class WeatherData:
 
     def merge_weather_with_flights(self) -> pd.DataFrame:
         """
-        Merges the flight data with the corresponding weather data for both
+        Merge the flight data with the corresponding weather data for both
         departure and arrival cities.
 
         Returns:

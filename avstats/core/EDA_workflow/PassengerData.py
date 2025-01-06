@@ -1,27 +1,48 @@
 # PassengerData.py
 import pandas as pd
+from typing import Optional, Dict
 
 
 class PassengerData:
-    def __init__(self, df, airport_mapping):
+    def __init__(self, df: pd.DataFrame, airport_mapping: Dict[str, str]):
+        """
+        Initialize the PassengerData class.
+
+        Args:
+            df (pd.DataFrame): The DataFrame containing passenger airline data.
+            airport_mapping (Dict[str, str]): A mapping of airport codes to route codes.
+        """
         self.df = df.copy()  # Make a copy of the DataFrame to avoid modifying the original
         self.airport_mapping = airport_mapping
 
-    def convert_to_route_code(self, airport_entry):
+    def convert_to_route_code(self, airport_entry: str) -> Optional[str]:
         """
-        Helper function for converting airport entries to route codes
+        Convert an airport entry to a route code.
+
+        Args:
+            airport_entry (str): A string representing the airport entry in the format 'Airport1 - Airport2'.
+
+        Returns:
+            Optional[str]: The route code in the format 'Code1-Code2' if both airports are valid,
+                           None otherwise.
         """
         airports = airport_entry.split(' - ')
         if len(airports) == 2:
             return f"{self.airport_mapping.get(airports[0].strip(), '')}-{self.airport_mapping.get(airports[1].strip(), '')}"
         return None
 
-    def process_passenger_data(self):
+    def process_passenger_data(self) -> pd.DataFrame:
         """
-        Process a DataFrame of passenger airline data by cleaning and transforming it.
+        Process the passenger airline data by cleaning and transforming it.
+
+        - Drops rows with any NaN values.
+        - Removes rows where any column contains a ":" character.
+        - Renames the 'TIME' column to 'AIRP_PR'.
+        - Converts 'AIRP_PR' column entries to route codes and inserts them as a new column.
+        - Drops the 'AIRP_PR' column.
 
         Returns:
-            pd.DataFrame: The processed DataFrame.
+            pd.DataFrame: The cleaned and transformed DataFrame.
         """
         # Drop rows with any NaN values
         self.df = self.df.dropna()

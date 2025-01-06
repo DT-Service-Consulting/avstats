@@ -1,24 +1,32 @@
 # core/ML_workflow/OneHotEncoding.py
 import pandas as pd
+from typing import Optional
 
 
 class OneHotEncoding:
     def __init__(self, df: pd.DataFrame):
+        """
+        Initializes the OneHotEncoding class with the provided dataframe.
+
+        Parameters:
+        df (pd.DataFrame): The dataframe containing data to encode.
+        """
         self.df = df
         self.df_encoded = None
 
-    def encode_routes(self):
+    def encode_routes(self) -> Optional[tuple[pd.DataFrame, pd.DataFrame, list[str]]]:
         """
         Encodes the specified route column, modifies the dummy variables,
         and creates a subset of the dataframe for correlation analysis.
 
-        Parameters:
-        df (pd.DataFrame): The dataframe containing the data to encode.
-        route_column (str): The name of the column to one-hot encode.
-        target_column (str): The target column for correlation analysis.
-
         Returns:
-        pd.DataFrame: A subset of the dataframe with encoded route columns and the target column.
+        tuple:
+            pd.DataFrame: The full dataframe with encoded route columns.
+            pd.DataFrame: A subset of the dataframe for correlation analysis.
+            list[str]: A list of route column names.
+
+        Raises:
+        KeyError: If required columns are not found in the dataframe.
         """
         try:
             # One-hot encode the 'route_iata_code' column
@@ -48,13 +56,16 @@ class OneHotEncoding:
             print(f"Encoding error: {e}")
             return None
 
-    def clean_data(self):
+    def clean_data(self) -> pd.DataFrame:
         """
         Removes columns in the encoded dataframe where all values are zero
-        and converts 'total_passengers' to numeric.
+        and converts 'total_passengers' to numeric format.
 
         Returns:
-        pd.DataFrame: The dataframe with zero-only columns removed.
+        pd.DataFrame: The dataframe with zero-only columns removed and numeric columns retained.
+
+        Raises:
+        KeyError: If the 'total_passengers' column is missing from the dataframe.
         """
         # Ensure 'total_passengers' is retained
         if 'total_passengers' not in self.df_encoded.columns:

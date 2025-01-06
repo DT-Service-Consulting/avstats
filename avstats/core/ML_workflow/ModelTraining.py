@@ -3,20 +3,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import statsmodels.api as sm
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.tree import DecisionTreeRegressor, export_text, plot_tree
+from sklearn.metrics import mean_squared_error
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from typing import Tuple, Dict, Union, List, Any
+from statsmodels.regression.linear_model import RegressionResults
 
 
 class ModelTraining:
-    def __init__(self, x_train, y_train, x_test, y_test):
+    def __init__(self, x_train: np.ndarray, y_train: np.ndarray, x_test: np.ndarray, y_test: np.ndarray) -> None:
         """
         Initializes the ModelTraining class with training and testing data.
 
         Parameters:
-        X (array-like): Features data.
-        y (array-like): Target data.
+        x_train (np.ndarray): Training features.
+        y_train (np.ndarray): Training target values.
+        x_test (np.ndarray): Testing features.
+        y_test (np.ndarray): Testing target values.
         """
         self.x_train = x_train
         self.y_train = y_train
@@ -25,13 +29,12 @@ class ModelTraining:
         self.model = None
         self.y_pred = None
 
-    def train_linear_model(self):
+    def train_linear_model(self) -> tuple[RegressionResults, np.ndarray]:
         """
         Trains a Linear Regression model using statsmodels and provides a detailed summary.
 
         Returns:
-        statsmodels.OLS: Trained OLS Regression model.
-        array-like: Predicted values for x_test.
+        Tuple[sm.OLS, np.ndarray]: Trained OLS Regression model and predicted values for x_test.
         """
         # Add a constant (intercept) to the model
         x_train_with_const = sm.add_constant(self.x_train)
@@ -43,7 +46,13 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def train_decision_tree(self):
+    def train_decision_tree(self) -> Tuple[DecisionTreeRegressor, np.ndarray]:
+        """
+        Trains a Decision Tree Regressor using the training data.
+
+        Returns:
+        Tuple[DecisionTreeRegressor, np.ndarray]: Trained Decision Tree model and predicted values for x_test.
+        """
         # Initialize the Decision Tree Regressor
         self.model = DecisionTreeRegressor(max_depth=5, random_state=42)
         self.model.fit(self.x_train, self.y_train)
@@ -51,13 +60,12 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def train_random_forest(self):
+    def train_random_forest(self) -> Tuple[RandomForestRegressor, np.ndarray]:
         """
         Trains a Random Forest Regressor using the training data.
 
         Returns:
-        RandomForestRegressor: Trained Random Forest Regressor model.
-        array-like: Predicted values for x_test.
+        Tuple[RandomForestRegressor, np.ndarray]: Trained Random Forest Regressor model and predicted values for x_test.
         """
         self.model = RandomForestRegressor(n_estimators=200, random_state=42)
         self.model.fit(self.x_train, self.y_train)
@@ -65,7 +73,7 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self):
+    def plot_model(self) -> None:
         """
         Plots the model's predicted values against the actual values using a scatter plot.
         """
@@ -84,22 +92,24 @@ class ModelTraining:
         plt.grid()
         plt.show()
 
-    def tune_and_evaluate(self, param_grid, verbose, search_type='grid', cv=5, scoring='neg_mean_squared_error',
-                          n_iter=10, log_scale=False):
+    def tune_and_evaluate(self, param_grid: Dict, verbose: int, search_type: str = 'grid', cv: int = 5,
+                          scoring: str = 'neg_mean_squared_error', n_iter: int = 10, log_scale: bool = False) -> Tuple[
+        Union[GridSearchCV, RandomizedSearchCV], Dict, np.ndarray, List[int], List[float], List[float]]:
         """
         Performs hyperparameter tuning (Grid Search or Randomized Search) and evaluates the best model on test data.
 
         Parameters:
-        model: The model instance (e.g., RandomForestRegressor()) to be tuned and evaluated.
-        param_grid: Dictionary containing parameter grid for hyperparameter tuning.
-        search_type: Type of search ('grid' for GridSearchCV, 'random' for RandomizedSearchCV).
-        cv: Number of cross-validation folds.
-        scoring: Scoring metric for evaluation.
-        n_iter: Number of parameter settings sampled in RandomizedSearchCV.
-        log_scale: Boolean to specify whether to use logarithmic scale for the training set sizes.
+        param_grid (Dict): Dictionary containing parameter grid for hyperparameter tuning.
+        verbose (int): Verbosity level for search output.
+        search_type (str): Type of search ('grid' for GridSearchCV, 'random' for RandomizedSearchCV).
+        cv (int): Number of cross-validation folds.
+        scoring (str): Scoring metric for evaluation.
+        n_iter (int): Number of parameter settings sampled in RandomizedSearchCV.
+        log_scale (bool): Whether to use logarithmic scale for training set sizes.
 
         Returns:
-        dict: The best parameters and evaluation metrics.
+        Tuple[Union[GridSearchCV, RandomizedSearchCV], Dict, np.ndarray, List[int], List[float], List[float]]:
+        Best model, parameters, predictions, sample sizes, train errors, and test errors.
         """
         train_errors = []
         test_errors = []

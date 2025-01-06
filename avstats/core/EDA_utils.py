@@ -7,7 +7,6 @@ and flight category percentages.
 By separating these functions from those in the utils.py file, we improve the readability and maintainability of
 the code, which allows for modifications to be made without affecting the general utility functions
 """
-
 import pandas as pd
 
 

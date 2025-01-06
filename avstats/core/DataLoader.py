@@ -1,12 +1,13 @@
+# DataLoader.py
 import yaml
 import json
 import pandas as pd
 from pathlib import Path
-import os
+from typing import Tuple, Optional, Dict
 
 
 class DataLoader:
-    def __init__(self, config_path='config.yaml'):
+    def __init__(self, config_path: str = 'config.yaml') -> None:
         """
         Initialize the DataLoader with a configuration file path.
 
@@ -17,8 +18,14 @@ class DataLoader:
         self.data_paths = None
         self._load_config()
 
-    def _load_config(self):
-        """Load the configuration file."""
+    def _load_config(self) -> None:
+        """
+        Load the configuration file to extract data paths.
+
+        Raises:
+            FileNotFoundError: If the configuration file is not found.
+            Exception: For other issues while loading the configuration.
+        """
         try:
             with open(self.config_path, 'r') as file:
                 config = yaml.safe_load(file)
@@ -28,12 +35,16 @@ class DataLoader:
         except Exception as e:
             raise Exception(f"An error occurred while loading the config file: {e}")
 
-    def load_data(self):
+    def load_data(self) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], Optional[Dict[str, str]]]:
         """
         Load data from the specified paths in the configuration.
 
         Returns:
-            tuple: A tuple containing DataFrames for avstats, passengers, and an airport mapping dictionary.
+            tuple: A tuple containing:
+                - pd.DataFrame: DataFrame for aviation statistics (avstats).
+                - pd.DataFrame: DataFrame for passenger data (passengers).
+                - Dict[str, str]: Dictionary for airport mappings.
+            If an error occurs, returns (None, None, None).
         """
         try:
             df_avstats = pd.read_csv(self.data_paths['avstats'])

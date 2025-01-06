@@ -88,14 +88,15 @@ def main():
             lambda col: col.astype(str) if col.dtype.name == 'category' else col)
         df_weather_merged.fillna(0, inplace=True)
         aggregator = MergeData(df_weather_merged)
-        aggregator.preprocess_datetime('sdt')
-        df_grouped_daily = aggregator.aggregate_daily()
+        aggregator.preprocess_datetime()
+        df_grouped_daily = aggregator.aggregate_daily(passenger_data=False)
         logging.info("Weather data merged successfully.")
         save_dataframe(df_grouped_daily, "df_weather")
 
         # Step 7: Passenger data
         passengers = PassengerData(df_passengers, airport_mapping)
         df_passengers_cleaned = passengers.process_passenger_data()
+        aggregator.aggregate_daily(passenger_data=True)
         df_merged = aggregator.aggregate_passengers(df_passengers_cleaned)
         logging.info("Passenger data fetched and merged successfully.")
         save_dataframe(df_merged, "df_merged")

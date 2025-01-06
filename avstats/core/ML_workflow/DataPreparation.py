@@ -5,13 +5,27 @@ from sklearn.linear_model import Lasso
 
 
 class DataPreparation:
-    def __init__(self, df: pd.DataFrame, target_variable):
+    def __init__(self, df: pd.DataFrame, target_variable: str):
+        """
+        Initialize the DataPreparation object.
+
+        Args:
+            df (pd.DataFrame): The input data.
+            target_variable (str): The name of the target variable column.
+        """
         self.df = df
         self.target_variable = target_variable # total_dep_delay with routes, dep_delay with weather
         self.x = None
         self.y = None
 
-    def standardize_data(self):
+    def standardize_data(self) -> tuple[pd.DataFrame, pd.Series]:
+        """
+        Standardize the input features by removing the mean and scaling to unit variance.
+
+        Returns:
+            tuple[pd.DataFrame, pd.Series]: A tuple containing the standardized features
+            (as a DataFrame) and the target variable (as a Series).
+        """
         # Prepare data
         self.x = self.df.drop(columns=[self.target_variable])  # drop the target variable
         self.y = self.df[self.target_variable]
@@ -28,19 +42,20 @@ class DataPreparation:
         return x_scaled_df, self.y  # return the scaled features and target variable
 
 
-    def select_important_features(self, alpha=0.2, threshold_percentage=0.03):
+    def select_important_features(self, alpha: float = 0.2, threshold_percentage: float = 0.03
+                                  ) -> tuple[pd.DataFrame, pd.Series]:
         """
         Select important features based on Lasso regression coefficients.
 
-        Parameters:
-        - x (pd.DataFrame): The input features.
-        - y (pd.Series): The target variable.
-        - alpha (float): Regularization strength for Lasso.
-        - threshold_percentage (float): Threshold as a percentage of the max absolute coefficient.
+        Args:
+            alpha (float): Regularization strength for Lasso. Defaults to 0.2.
+            threshold_percentage (float): Threshold as a percentage of the max absolute coefficient.
+                                           Defaults to 0.03.
 
         Returns:
-        - x_important (pd.DataFrame): DataFrame with only the important features.
-        - important_features (pd.Series): Series of important feature coefficients.
+            tuple[pd.DataFrame, pd.Series]: A tuple containing:
+                - x_important: A DataFrame with only the important features.
+                - important_features: A Series of important feature coefficients.
         """
         # Standardize the features
         scaler = StandardScaler()

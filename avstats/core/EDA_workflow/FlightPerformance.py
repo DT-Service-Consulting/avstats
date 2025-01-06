@@ -1,6 +1,6 @@
 # FlightPerformance.py
 import pandas as pd
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 
 
 class FlightPerformance:

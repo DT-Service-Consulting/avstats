@@ -6,15 +6,19 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from datetime import timedelta
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
-from tensorflow.keras.models import Sequential
+from datetime import timedelta, datetime
+from typing import Tuple, Optional, List, Union
 
 
-def adf_test(series):
+def adf_test(series: Union[pd.Series, List[float], np.ndarray]) -> float:
     """
     Perform Augmented Dickey-Fuller test and return the p-value.
+
+    Args:
+        series (Union[pd.Series, List[float], np.ndarray]): The time series to test for stationarity.
+
+    Returns:
+        float: The p-value of the ADF test.
     """
     if not isinstance(series, (pd.Series, list, np.ndarray)):
         raise ValueError("Input series must be a pandas Series, list, or numpy array.")
@@ -26,7 +30,20 @@ def adf_test(series):
         raise ValueError("Unexpected output from adfuller: {}".format(adf_result))  # Return the p-value of the ADF test
 
 class TimeSeriesAnalysis:
-    def __init__(self, df, start_date, end_date, train_end, test_end, column, date_column):
+    def __init__(self, df: pd.DataFrame, start_date: datetime, end_date: datetime, train_end: datetime,
+                 test_end: datetime, column: str, date_column: str):
+        """
+        Initialize the TimeSeriesAnalysis class.
+
+        Args:
+            df (pd.DataFrame): The dataframe containing the time series data.
+            start_date (datetime): The start date for analysis.
+            end_date (datetime): The end date for analysis.
+            train_end (datetime): The last date for training data.
+            test_end (datetime): The last date for testing data.
+            column (str): The target column for analysis.
+            date_column (str): The column representing dates.
+        """
         self.df = df
         self.column = column
         self.date_column = date_column
@@ -42,10 +59,15 @@ class TimeSeriesAnalysis:
         self.df.set_index(date_column, inplace=True)
         self.df = self.df.asfreq('D')
 
-    def check_stationarity(self, max_diffs=2):
+    def check_stationarity(self, max_diffs: int = 2) -> Tuple[pd.Series, bool]:
         """
         Check if the series is stationary using the ADF test.
-        If not stationary, apply differencing up to a specified number of times (max_diffs).
+
+        Args:
+            max_diffs (int): Maximum number of differencing attempts.
+
+        Returns:
+            Tuple[pd.Series, bool]: Differenced data and stationarity status.
         """
         p_value = adf_test(self.df[self.column])
         print(f'- ADF Test p-value (original): {p_value}')
@@ -67,7 +89,14 @@ class TimeSeriesAnalysis:
         print(f"Series is still non-stationary after {max_diffs} differencing.")
         return differenced_data, False
 
-    def plot_acf_pacf(self, acf_lag, pacf_lag):
+    def plot_acf_pacf(self, acf_lag: int, pacf_lag: int) -> None:
+        """
+        Plot ACF and PACF for the time series.
+
+        Args:
+            acf_lag (int): Number of lags for the ACF plot.
+            pacf_lag (int): Number of lags for the PACF plot.
+        """
         plt.figure(figsize=(12, 6))
 
         # ACF plot
@@ -81,8 +110,14 @@ class TimeSeriesAnalysis:
         plt.title("PACF Plot")
         plt.tight_layout()
 
-    def plot_forecast(self, predictions, title):
-        """Plot actual vs predicted values with monthly vertical lines."""
+    def plot_forecast(self, predictions: pd.Series, title: str) -> None:
+        """
+        Plot actual vs predicted values.
+
+        Args:
+            predictions (pd.Series): Predicted values.
+            title (str): Title of the plot.
+        """
         plt.figure(figsize=(10, 4))
         plt.plot(self.df[self.column], label='Actual')
         plt.plot(predictions, label='Predicted', color='orange')
@@ -93,11 +128,19 @@ class TimeSeriesAnalysis:
         plt.legend()
         plt.show()
 
-    def arima_sarimax_forecast(self, order, seasonal_order=None):
+    def arima_sarimax_forecast(self, order: Tuple[int, int, int], seasonal_order: Optional[
+        Tuple[int, int, int, int]] = None) -> Tuple[pd.Series, pd.Series, pd.Series, Union[ARIMA, SARIMAX]]:
         """
-       Combined ARIMA and SARIMAX forecasting function.
-       If seasonal_order is None, ARIMA will be used. Otherwise, SARIMAX will be used.
-       """
+        Perform ARIMA or SARIMAX forecasting.
+
+        Args:
+            order (Tuple[int, int, int]): ARIMA order (p, d, q).
+            seasonal_order (Optional[Tuple[int, int, int, int]]): SARIMAX seasonal order.
+
+        Returns:
+            Tuple[pd.Series, pd.Series, pd.Series, Union[ARIMA, SARIMAX]]:
+            Actual data, predictions, residuals, and model.
+        """
         train_data = self.df[self.column][:self.train_end]
         test_data = self.df[self.column][self.train_end + timedelta(days=1):self.test_end]
 
@@ -122,8 +165,20 @@ class TimeSeriesAnalysis:
         # Evaluate
         return test_data, predictions, residuals, model
 
-    def rolling_forecast(self, order, train_window, forecast_steps=1, seasonal_order=None):
-        """Perform rolling forecast using SARIMAX."""
+    def rolling_forecast(self, order: Tuple[int, int, int], train_window: int, forecast_steps: int = 1,
+                         seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> Tuple[pd.Series, pd.Series, pd.Series]:
+        """
+        Perform rolling forecast.
+
+        Args:
+            order (Tuple[int, int, int]): ARIMA order.
+            train_window (int): Number of observations in the training window.
+            forecast_steps (int): Number of steps to forecast.
+            seasonal_order (Optional[Tuple[int, int, int, int]]): SARIMAX seasonal order.
+
+        Returns:
+            Tuple[pd.Series, pd.Series, pd.Series]: Actual data, predictions, and residuals.
+        """
         rolling_predictions = []
         rolling_actual = []
 
@@ -148,56 +203,3 @@ class TimeSeriesAnalysis:
         # Plot results
         self.plot_forecast(rolling_predictions, title="Rolling Forecast vs Actual")
         return rolling_actual, rolling_predictions, residuals
-
-
-class NeuralNetworks:
-    def __init__(self, df):
-        self.df = df
-
-    def neural_networks(self):
-        # Load and prepare the data
-        values = self.df['total_dep_delay'].values  # Replace with your column name
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaled_values = scaler.fit_transform(values.reshape(-1, 1))
-
-        # Create sliding windows
-        def create_dataset(data, lookback=1):
-            x_nn, y_nn = [], []
-            for i in range(len(data) - lookback - 1):
-                x_nn.append(data[i:(i + lookback), 0])
-                y_nn.append(data[i + lookback, 0])
-            return np.array(x_nn), np.array(y_nn)
-
-        look_back = 10  # Number of past days used for prediction
-        x, y = create_dataset(scaled_values, look_back)
-
-        # Reshape for LSTM input
-        x = np.reshape(x, (x.shape[0], x.shape[1], 1))
-
-        # Train-test split
-        train_size = int(len(x) * 0.8)
-        x_train, x_test = x[:train_size], x[train_size:]
-        y_train, y_test = y[:train_size], y[train_size:]
-
-        # Build the LSTM model with an explicit Input layer
-        model = Sequential([
-            Input(shape=(look_back, 1)),  # Define the input shape explicitly
-            LSTM(50),
-            Dropout(0.2),
-            Dense(1)  # Single output for regression
-        ])
-
-        model.compile(optimizer='adam', loss='mse')
-        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1)
-
-        # Predictions
-        predicted = model.predict(x_test)
-        nn_predictions = scaler.inverse_transform(predicted)  # Inverse scaling
-        y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
-
-        # Plot actual vs predicted
-        plt.plot(y_test, label="Actual")
-        plt.plot(nn_predictions, label="Predicted")
-        plt.legend()
-        plt.show()
-        return y_test, nn_predictions

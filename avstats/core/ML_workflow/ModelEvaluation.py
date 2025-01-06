@@ -1,26 +1,29 @@
 # core/ML_workflow/ModelEvaluation.py
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
-from sklearn.model_selection import KFold
 import numpy as np
 import statsmodels.api as sm
+from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import KFold
+from typing import Optional, Tuple
 
 
-def cross_validate(x_train, y_train, cv=5):
+def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.ndarray:
     """
     Perform k-fold cross-validation on the model.
 
     Parameters:
+    x_train (np.ndarray): Features for training the model.
+    y_train (np.ndarray): Target variable for training.
     cv (int): Number of cross-validation folds. Default is 5.
 
     Returns:
-    array: Cross-validation R2 scores.
+    np.ndarray: Cross-validation R2 scores for each fold.
     """
     kf = KFold(n_splits=cv, shuffle=True, random_state=42)
     scores = []
 
     for train_index, val_index in kf.split(x_train):
-        x_train_fold, x_val_fold = x_train.iloc[train_index], x_train.iloc[val_index]
-        y_train_fold, y_val_fold = y_train.iloc[train_index], y_train.iloc[val_index]
+        x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
+        y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
 
         # Fit a new OLS model for each fold
         ols_model = sm.OLS(y_train_fold, sm.add_constant(x_train_fold))
@@ -32,8 +35,21 @@ def cross_validate(x_train, y_train, cv=5):
     return np.array(scores)
 
 
-def evaluate_model(test_data, predictions, residuals=None):
-    """Evaluate model performance using MAE, MAPE, and RMSE. (y_test & y_pred)
+def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None
+                   ) -> Tuple[float, Optional[float], float]:
+    """
+    Evaluate model performance using MAE, MAPE, and RMSE.
+
+    Parameters:
+    test_data (np.ndarray): Actual target values for testing.
+    predictions (np.ndarray): Predicted values from the model.
+    residuals (Optional[np.ndarray]): Difference between actual and predicted values. Default is None.
+
+    Returns:
+    Tuple[float, Optional[float], float]:
+        - Mean Absolute Error (MAE)
+        - Mean Absolute Percentage Error (MAPE) (if residuals are provided)
+        - Root Mean Squared Error (RMSE)
     """
     mae = mean_absolute_error(test_data, predictions)
     mape = np.mean(abs(residuals / test_data)) * 100 if residuals is not None else None

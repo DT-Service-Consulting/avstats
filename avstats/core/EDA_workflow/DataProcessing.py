@@ -15,6 +15,14 @@ class DataProcessing:
         self.unique_column = unique_column
 
     def preprocess_avstats(self) -> pd.DataFrame:
+        """
+        Preprocess the aviation statistics DataFrame by cleaning and engineering features.
+
+        This method handles missing values, calculates additional features, and ensures proper datetime conversions.
+
+        Returns:
+            pd.DataFrame: The processed DataFrame with additional features and cleaned data.
+        """
         self.df['adt'] = pd.to_datetime(self.df['adt'], errors='coerce')
         self.df['aat'] = pd.to_datetime(self.df['aat'], errors='coerce')
 
@@ -49,8 +57,6 @@ class DataProcessing:
         self.df['arr_time_window'] = self.df['aat'].apply(
             lambda x: NewFeatures.get_time_window(x.hour) if pd.notnull(x) else None)
 
-        #self.df['dep_time_window'] = self.df['adt'].dt.hour.apply(NewFeatures.get_time_window)
-        #self.df['arr_time_window'] = self.df['aat'].dt.hour.apply(NewFeatures.get_time_window)
         self.df['on_time_15'] = (self.df['dep_delay'] < 15).astype(int)
 
         return self.df

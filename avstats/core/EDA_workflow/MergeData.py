@@ -4,7 +4,7 @@ import numpy as np
 
 
 class MergeData:
-    def __init__(self, df):
+    def __init__(self, df: pd.DataFrame):
         """
         Initialize the class with a DataFrame.
 
@@ -14,24 +14,24 @@ class MergeData:
         self.df = df.copy()
         self.df_grouped = None
 
-    def preprocess_datetime(self):
+    def preprocess_datetime(self) -> None:
         """
         Preprocess datetime column: ensure timezone-aware and convert to UTC.
-
-        Args:
-            datetime_col (str): Name of the datetime column to process.
         """
         self.df['sdt'] = pd.to_datetime(self.df['sdt'], errors='coerce')
         if self.df['sdt'].dt.tz is None:
             self.df['sdt'] = self.df['sdt'].dt.tz_localize('UTC')
         self.df['sdt'] = self.df['sdt'].dt.tz_convert('UTC').dt.tz_localize(None)
 
-    def aggregate_daily(self, passenger_data=True):
+    def aggregate_daily(self, passenger_data: bool = True) -> pd.DataFrame:
         """
-        Perform daily aggregation on the data.
+        Perform aggregation on the data grouped by either Month or Date.
+
+        Args:
+            passenger_data (bool): If True, group by 'Month'; otherwise, group by 'Date'.
 
         Returns:
-            pd.DataFrame: Aggregated daily data grouped by route and date.
+            pd.DataFrame: Aggregated data grouped by route and the selected time period.
         """
         if passenger_data is True:
             self.df['Month'] = pd.to_datetime(self.df['sdt']).dt.to_period('M')
@@ -109,7 +109,16 @@ class MergeData:
         )
         return self.df_grouped
 
-    def aggregate_passengers(self, df_passengers):
+    def aggregate_passengers(self, df_passengers: pd.DataFrame) -> pd.DataFrame:
+        """
+        Aggregate passenger data by merging it with flight data.
+
+        Args:
+            df_passengers (pd.DataFrame): Passenger data with columns `route_code` and monthly passenger counts.
+
+        Returns:
+            pd.DataFrame: Merged DataFrame of aggregated flight and passenger data.
+        """
         # Reshape to long format
         df_passengers_long = pd.melt(
             df_passengers,
