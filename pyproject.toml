@@ -19,6 +19,7 @@ pytest = "^8.3.3"
 meteostat = "^1.6.8"
 tensorflow = "^2.18.0"
 airportsdata = "^20241001"
+pydantic = "^2.0.0"
 
 
 [build-system]
