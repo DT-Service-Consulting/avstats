@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 from avstats.core.ML_workflow.OneHotEncoding import OneHotEncoding
 
+
 def test_encode_routes():
     # Mock data
     data = {

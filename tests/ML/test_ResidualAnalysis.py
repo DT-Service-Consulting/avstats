@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 from avstats.core.ML_workflow.ResidualAnalysis import ResidualAnalysis
 import matplotlib.pyplot as plt
-from pydantic import ValidationError
 
 
 @pytest.fixture

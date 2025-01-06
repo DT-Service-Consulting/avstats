@@ -26,14 +26,10 @@ def test_cross_validate(sample_data):
     Test the cross-validate function.
     """
     x_train, y_train = sample_data
-
-    # Convert to numpy arrays for compatibility with updated function
     x_train_np = x_train.values
     y_train_np = y_train.values
 
     cv_scores = cross_validate(x_train_np, y_train_np, cv=5)
-
-    # Check that the function returns an array of length equal to the number of folds
     assert len(cv_scores) == 5
 
     # Verify the R2 scores are within a reasonable range (-1 to 1 for R2 score)
