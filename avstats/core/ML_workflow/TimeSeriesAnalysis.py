@@ -8,7 +8,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from datetime import timedelta, datetime
 from typing import Tuple, Optional, List, Union
-from avstats.core.ML_workflow.validators_ML.validator_time_series_analysis import TimeSeriesAnalysisInput
+from avstats.core.ML_workflow.validators_ML.validator_TimeSeriesAnalysis import TimeSeriesAnalysisInput
 
 
 def adf_test(series: Union[pd.Series, List[float], np.ndarray]) -> float:

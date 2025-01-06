@@ -3,6 +3,7 @@ import pandas as pd
 from pandas import DataFrame
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from typing import Union, Any
+from avstats.core.ML_workflow.validators_ML.validator_Multicollinearity import MulticollinearityInput
 
 
 class Multicollinearity:
@@ -15,9 +16,13 @@ class Multicollinearity:
         y (pd.Series): The target variable.
         verbose (bool): Whether to print details during processing.
         """
-        self.scaled_df = scaled_df
-        self.y = y
-        self.verbose = verbose
+        # Validate inputs using Pydantic
+        validated_inputs = MulticollinearityInput(scaled_df=scaled_df, y=y, verbose=verbose)
+
+        # Store validated inputs
+        self.scaled_df = validated_inputs.scaled_df
+        self.y = validated_inputs.y
+        self.verbose = validated_inputs.verbose
 
     def remove_high_vif_features(self, threshold: Union[int, float] = 10) -> tuple[DataFrame, Union[DataFrame, Any]]:
         """

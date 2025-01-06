@@ -1,4 +1,4 @@
-# core/ML_workflow/validators_ML/validator_model_evaluation.py
+# core/ML_workflow/validators_ML/validator_ModelEvaluation.py
 from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
 import numpy as np
 from typing import Optional

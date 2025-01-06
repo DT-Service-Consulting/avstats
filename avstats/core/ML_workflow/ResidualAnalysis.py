@@ -2,13 +2,18 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
+from avstats.core.ML_workflow.validators_ML.validator_ResidualAnalysis import ResidualAnalysisInput
 
 
 class ResidualAnalysis:
     def __init__(self, model, y_pred, residuals):
-        self.model = model
-        self.y_pred = y_pred
-        self.residuals = residuals
+        # Validate inputs using Pydantic
+        validated_input = ResidualAnalysisInput(model=model, y_pred=y_pred, residuals=residuals)
+
+        # Assign validated inputs to instance variables
+        self.model = validated_input.model
+        self.y_pred = validated_input.y_pred
+        self.residuals = validated_input.residuals
 
     def plot_residuals(self, dataset_name, subplot_position=None):
         """

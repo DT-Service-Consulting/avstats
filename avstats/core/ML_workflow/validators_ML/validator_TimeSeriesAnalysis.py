@@ -1,4 +1,4 @@
-# core/ML_workflow/validators_ML/validator_time_series_analysis.py
+# core/ML_workflow/validators_ML/validator_TimeSeriesAnalysis.py
 from pydantic import BaseModel, field_validator, ConfigDict, ValidationInfo
 import pandas as pd
 from datetime import datetime

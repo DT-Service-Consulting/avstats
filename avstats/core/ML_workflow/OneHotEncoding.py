@@ -1,6 +1,7 @@
 # core/ML_workflow/OneHotEncoding.py
 import pandas as pd
 from typing import Optional
+from avstats.core.ML_workflow.validators_ML.validator_OneHotEncoding import OneHotEncodingInput
 
 
 class OneHotEncoding:
@@ -11,7 +12,10 @@ class OneHotEncoding:
         Parameters:
         df (pd.DataFrame): The dataframe containing data to encode.
         """
-        self.df = df
+        # Validate input using Pydantic
+        validated_input = OneHotEncodingInput(df=df)
+
+        self.df = validated_input.df
         self.df_encoded = None
 
     def encode_routes(self) -> Optional[tuple[pd.DataFrame, pd.DataFrame, list[str]]]:

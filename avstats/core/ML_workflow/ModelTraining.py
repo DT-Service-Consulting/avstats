@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from typing import Tuple, Dict, Union, List, Any
 from statsmodels.regression.linear_model import RegressionResults
+from avstats.core.ML_workflow.validators_ML.validator_ModelTraining import ModelTrainingInput
 
 
 class ModelTraining:
@@ -22,10 +23,14 @@ class ModelTraining:
         x_test (np.ndarray): Testing features.
         y_test (np.ndarray): Testing target values.
         """
-        self.x_train = x_train
-        self.y_train = y_train
-        self.x_test = x_test
-        self.y_test = y_test
+        # Validate inputs using Pydantic
+        validated_inputs = ModelTrainingInput(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
+
+        # Store validated inputs
+        self.x_train = validated_inputs.x_train
+        self.y_train = validated_inputs.y_train
+        self.x_test = validated_inputs.x_test
+        self.y_test = validated_inputs.y_test
         self.model = None
         self.y_pred = None
 
@@ -116,15 +121,18 @@ class ModelTraining:
         sample_sizes = []  # List to store the number of samples for each training set
 
         if log_scale:
-            train_sizes = np.logspace(np.log10(0.01), np.log10(1.0),
-                                      num=10)  # Logarithmic space between 1% to 100% of data
+            train_sizes = np.logspace(np.log10(0.01), np.log10(1.0), num=10)  # Logarithmic space between 1% to 100% of data
         else:
             train_sizes = np.linspace(0.1, 1.0, 10)  # Regular linear space
 
         for train_size in train_sizes:
             # Subset the training data
-            x_train_subset = self.x_train.sample(frac=train_size, random_state=42)
-            y_train_subset = self.y_train.loc[x_train_subset.index]
+            n_samples = int(len(self.x_train) * train_size)
+            indices = np.random.choice(len(self.x_train), size=n_samples, replace=False)
+            x_train_subset = self.x_train[indices]
+            y_train_subset = self.y_train[indices]
+            #x_train_subset = self.x_train.sample(frac=train_size, random_state=42)
+            #y_train_subset = self.y_train.loc[x_train_subset.index]
 
             # Perform grid search
             if search_type == 'grid':

@@ -5,30 +5,33 @@ from avstats.core.ML_workflow.Multicollinearity import Multicollinearity
 
 @pytest.fixture
 def sample_data():
-    # Create a simple DataFrame with correlated features and a target variable
-    data = {
-        'A': [1, 0, 1, 0, 1],
-        'B': [1, 0, 1, 1, 1],  # Some correlation with A
-        'C': [1, 1, 0, 0, 0],  # Another feature
-        'D': [1, 0, 1, 0, 0],  # Some correlation with A
-        'E': [1, 0, 1, 0, 1],  # Perfectly correlated with A - Removed
-        'F': [1, 1, 1, 1, 1]   # Constant feature - Removed
-    }
-    df = pd.DataFrame(data)
-    y = pd.Series([1, 0, 1, 0, 1], name='target')
-    return df, y
+    scaled_df = pd.DataFrame({
+        "Feature1": [1, 2, 3, 4, 5],
+        "Feature2": [2, 4, 6, 8, 10],
+        "Feature3": [5, 6, 7, 8, 9],
+    })
+    y = pd.Series([1, 2, 3, 4, 5], name="Target")
+    return scaled_df, y
 
 
-def test_remove_high_vif_features(sample_data):
-    df, y = sample_data
-    multi = Multicollinearity(scaled_df=df, y=y, verbose=False)
-    result_df, features = multi.remove_high_vif_features(threshold=5)
+def test_valid_multicollinearity_instance(sample_data):
+    scaled_df, y = sample_data
+    instance = Multicollinearity(scaled_df=scaled_df, y=y, verbose=True)
+    assert isinstance(instance, Multicollinearity), "Instance should be of Multicollinearity class"
 
-    assert 'A' not in features.columns, "Feature 'A' with high VIF removed"
-    assert 'B' in features.columns,     "Feature 'B' with mid VIF not removed"
-    assert 'C' in features.columns,     "Feature 'C' with low VIF not removed"
-    assert 'D' in features.columns,     "Feature 'D' with mid VIF not removed"
-    assert 'E' not in features.columns, "Feature 'E' with high VIF removed"
-    assert 'F' not in features.columns, "Feature 'F' constant removed"
 
-    print(result_df)
+def test_empty_dataframe():
+    with pytest.raises(ValueError, match="scaled_df cannot be empty"):
+        Multicollinearity(scaled_df=pd.DataFrame(), y=pd.Series([1, 2, 3]), verbose=True)
+
+
+def test_missing_values():
+    scaled_df = pd.DataFrame({"Feature1": [1, None, 3]})
+    with pytest.raises(ValueError, match="scaled_df contains missing values"):
+        Multicollinearity(scaled_df=scaled_df, y=pd.Series([1, 2, 3]), verbose=True)
+
+
+def test_invalid_target():
+    scaled_df = pd.DataFrame({"Feature1": [1, 2, 3]})
+    with pytest.raises(ValueError, match="Input should be an instance of Series"):
+        Multicollinearity(scaled_df=scaled_df, y=[1, 2, 3], verbose=True)

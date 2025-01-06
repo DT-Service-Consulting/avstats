@@ -5,7 +5,7 @@ import statsmodels.api as sm
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
 from typing import Optional, Tuple
-from avstats.core.ML_workflow.validators_ML.validator_model_evaluation import CrossValidationInput, ModelEvaluationInput
+from avstats.core.ML_workflow.validators_ML.validator_ModelEvaluation import CrossValidationInput, ModelEvaluationInput
 
 
 def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.ndarray:

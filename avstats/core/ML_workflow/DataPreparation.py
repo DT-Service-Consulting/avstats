@@ -2,7 +2,7 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Lasso
-from avstats.core.ML_workflow.validators_ML.validator_data_preparation import DataPreparationInput
+from avstats.core.ML_workflow.validators_ML.validator_DataPreparation import DataPreparationInput
 
 
 class DataPreparation:
