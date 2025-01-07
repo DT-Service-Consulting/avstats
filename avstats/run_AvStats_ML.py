@@ -18,14 +18,14 @@ sys.path.append(str(BASE_DIR / 'core'))
 
 try:
     from core.config import PARAM_GRID_RF
-    from core.ML_workflow.OneHotEncoding import OneHotEncoding
-    from core.ML_workflow.DataPreparation import DataPreparation
-    from core.ML_workflow.Multicollinearity import Multicollinearity
-    from core.ML_workflow.ModelTraining import ModelTraining
-    from core.ML_workflow.TimeSeriesAnalysis import TimeSeriesAnalysis
-    from core.ML_workflow.NeuralNetworks import NeuralNetworks
-    from core.ML_workflow.ModelEvaluation import cross_validate, evaluate_model, plot_combined
-    from core.ML_workflow.ResidualAnalysis import ResidualAnalysis
+    from core.ML.OneHotEncoding import OneHotEncoding
+    from core.ML.DataPreparation import DataPreparation
+    from core.ML.Multicollinearity import Multicollinearity
+    from core.ML.ModelTraining import ModelTraining
+    from core.ML.TimeSeriesAnalysis import TimeSeriesAnalysis
+    from core.ML.NeuralNetworks import NeuralNetworks
+    from core.ML.ModelEvaluation import cross_validate, evaluate_model, plot_combined
+    from core.ML.ResidualAnalysis import ResidualAnalysis
 except ModuleNotFoundError as e:
     logging.error(f"Module import error: {e}", exc_info=True)
     raise

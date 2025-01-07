@@ -13,11 +13,11 @@ sys.path.append(str(BASE_DIR / 'core'))
 
 try:
     from core.DataLoader import DataLoader
-    from core.EDA_workflow.DataProcessing import DataProcessing
-    from core.EDA_workflow.FlightPerformance import FlightPerformance
-    from core.EDA_workflow.WeatherData import WeatherData
-    from core.EDA_workflow.MergeData import MergeData
-    from core.EDA_workflow.PassengerData import PassengerData
+    from core.EDA.DataProcessing import DataProcessing
+    from core.EDA.FlightPerformance import FlightPerformance
+    from core.EDA.WeatherData import WeatherData
+    from core.EDA.MergeData import MergeData
+    from core.EDA.PassengerData import PassengerData
     from avstats.core.EDA_utils import *
     from avstats.core.general_utils import *
 except ModuleNotFoundError as e:
@@ -32,7 +32,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(LOG_DIR / 'flight_weather_pipeline.log')
+        logging.FileHandler(LOG_DIR / 'weather_pipeline.log')
     ]
 )
 
