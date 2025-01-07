@@ -1,7 +1,5 @@
 import pytest
-import pandas as pd
-import numpy as np
-from avstats.core.ML.TimeSeriesAnalysis import TimeSeriesAnalysis, adf_test
+from avstats.core.ML.TimeSeriesAnalysis import *
 
 
 @pytest.fixture
@@ -102,11 +100,45 @@ def test_sarimax_forecast(tsa_instance):
 
 
 def test_rolling_forecast(tsa_instance):
+    """
+    Test the rolling_forecast function.
+    """
     order = (1, 1, 1)
     seasonal_order = (1, 1, 1, 12)
+    train_window = 30
+
+    # Execute the rolling forecast
     rolling_actual, rolling_predictions, residuals = tsa_instance.rolling_forecast(
-        order=order, train_window=30, seasonal_order=seasonal_order
+        order=order, train_window=train_window, seasonal_order=seasonal_order
     )
-    assert isinstance(rolling_actual, pd.Series), "Rolling actual values are not a pandas Series"
-    assert isinstance(rolling_predictions, pd.Series), "Rolling predictions are not a pandas Series"
-    assert isinstance(residuals, pd.Series), "Residuals are not a pandas Series"
+
+    # Validate the outputs
+    assert isinstance(rolling_actual, np.ndarray), "Rolling actual values should be a numpy array"
+    assert isinstance(rolling_predictions, np.ndarray), "Rolling predictions should be a numpy array"
+    assert isinstance(residuals, np.ndarray), "Residuals should be a numpy array"
+
+    # Ensure lengths match
+    assert len(rolling_actual) == len(rolling_predictions), "Actual and predicted lengths do not match"
+    assert len(residuals) == len(rolling_predictions), "Residuals length does not match predictions length"
+
+    # Check residuals computation
+    computed_residuals = rolling_actual - rolling_predictions
+    np.testing.assert_array_almost_equal(
+        residuals, computed_residuals, decimal=5, err_msg="Residuals are not correctly computed"
+    )
+
+    # Ensure rolling_forecast produces at least one prediction
+    assert len(rolling_predictions) > 0, "Rolling forecast did not produce any predictions"
+
+    # Test the visual component (plot)
+    try:
+        plt.figure()
+        # Adjust the index range to match the predictions length
+        plot_index = tsa_instance.df[tsa_instance.column].index[train_window:train_window + len(rolling_predictions)]
+        tsa_instance.plot_forecast(
+            pd.Series(rolling_predictions, index=plot_index),
+            title="Rolling Forecast vs Actual",
+        )
+        plt.close()
+    except Exception as e:
+        pytest.fail(f"Plotting failed with exception: {e}")

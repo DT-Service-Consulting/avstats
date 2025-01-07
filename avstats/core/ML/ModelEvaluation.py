@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
-from typing import Tuple, Optional, Dict, Union
+from typing import Optional, Dict, Union
 from avstats.core.ML.validators.validator_ModelEvaluation import CrossValidationInput, ModelEvaluationInput
 
 

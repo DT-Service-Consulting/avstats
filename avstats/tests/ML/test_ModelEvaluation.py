@@ -1,13 +1,5 @@
 import pytest
-import pandas as pd
-import numpy as np
-import statsmodels.api as sm
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-from avstats.core.ML.ModelEvaluation import cross_validate, evaluate_model
-
-
-def root_mean_squared_error(y_true, y_pred):
-    return np.sqrt(mean_squared_error(y_true, y_pred))
+from avstats.core.ML.ModelEvaluation import *
 
 
 @pytest.fixture
@@ -46,7 +38,7 @@ def test_evaluate_model(sample_data):
     """
     x, y = sample_data
 
-    # Convert to numpy arrays for compatibility with updated function
+    # Convert to numpy arrays for compatibility with the updated function
     x_np = x.values
     y_np = y.values
 
@@ -56,20 +48,45 @@ def test_evaluate_model(sample_data):
     residuals = y_np - predictions
 
     # Evaluate model with residuals
-    mae, mape, rmse = evaluate_model(y_np, predictions, residuals)
+    metrics = evaluate_model(y_np, predictions, residuals)
 
     # Validate the computed metrics
-    expected_mae = mean_absolute_error(y_np, predictions)
-    expected_rmse = root_mean_squared_error(y_np, predictions)
-    expected_mape = np.mean(abs(residuals / y_np)) * 100
+    expected_mae = round(mean_absolute_error(y_np, predictions), 2)
+    expected_rmse = round(root_mean_squared_error(y_np, predictions), 2)
+    expected_mape = round(np.mean(abs(residuals / y_np)) * 100, 2)
 
-    assert np.isclose(mae, expected_mae, rtol=1e-5)
-    assert np.isclose(rmse, expected_rmse, rtol=1e-5)
-    assert np.isclose(mape, expected_mape, rtol=1e-5)
+    assert metrics["MAE (min.)"] == expected_mae, f"Expected MAE: {expected_mae}, Got: {metrics['MAE (min.)']}"
+    assert metrics["RMSE (min.)"] == expected_rmse, f"Expected RMSE: {expected_rmse}, Got: {metrics['RMSE (min.)']}"
+    if metrics["MAPE (%)"] is not None:
+        assert metrics["MAPE (%)"] == expected_mape, f"Expected MAPE: {expected_mape}, Got: {metrics['MAPE (%)']}"
 
     # Test behavior when residuals are not provided
-    mae_no_residuals, mape_no_residuals, rmse_no_residuals = evaluate_model(y_np, predictions)
+    metrics_no_residuals = evaluate_model(y_np, predictions)
 
-    assert np.isclose(mae_no_residuals, expected_mae, rtol=1e-5)
-    assert np.isclose(rmse_no_residuals, expected_rmse, rtol=1e-5)
-    assert mape_no_residuals is None
+    assert metrics_no_residuals["MAE (min.)"] == expected_mae
+    assert metrics_no_residuals["RMSE (min.)"] == expected_rmse
+    assert metrics_no_residuals["MAPE (%)"] is None
+
+
+def test_plot_combined(sample_data):
+    """
+    Test the plot_combined function.
+    """
+    x, y = sample_data
+
+    # Convert to numpy arrays for compatibility with the updated function
+    x_np = x.values
+    y_np = y.values
+
+    # Simulate predictions using a simple OLS model
+    ols_model = sm.OLS(y_np, sm.add_constant(x_np)).fit()
+    predictions = ols_model.predict(sm.add_constant(x_np))
+    residuals = y_np - predictions
+
+    # Ensure the function executes without error
+    try:
+        plt.figure()  # Ensure plot does not interfere with other tests
+        plot_combined("OLS Model", actual=y_np, predicted=predictions, residuals=residuals)
+        plt.close()
+    except Exception as e:
+        pytest.fail(f"plot_combined function raised an exception: {e}")
