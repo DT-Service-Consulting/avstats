@@ -90,3 +90,23 @@ def test_plot_combined(sample_data):
         plt.close()
     except Exception as e:
         pytest.fail(f"plot_combined function raised an exception: {e}")
+
+
+def test_plot_metrics():
+    """
+    Test the plot_metrics function to ensure it can plot model performance metrics correctly.
+    """
+    # Mock evaluation results
+    evaluation_results = [
+        {"Model": "Model A", "MAE (min.)": 2.5, "RMSE (min.)": 3.0, "MAPE (%)": 10.5},
+        {"Model": "Model B", "MAE (min.)": 3.1, "RMSE (min.)": 4.2, "MAPE (%)": 12.8},
+        {"Model": "Model C", "MAE (min.)": 2.8, "RMSE (min.)": 3.5, "MAPE (%)": None},  # Handle None values for MAPE
+    ]
+
+    # Ensure no exceptions are raised during plotting
+    try:
+        plt.figure()
+        plot_metrics(evaluation_results)
+        plt.close()  # Close the figure to free memory
+    except Exception as e:
+        pytest.fail(f"Plotting failed with exception: {e}")

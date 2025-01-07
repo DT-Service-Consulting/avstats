@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
-from typing import Optional, Dict, Union
+from typing import List, Dict, Union, Optional
 from avstats.core.ML.validators.validator_ModelEvaluation import CrossValidationInput, ModelEvaluationInput
 
 
@@ -113,4 +113,38 @@ def plot_combined(model_name, actual, predicted, residuals=None):
     axes[1].tick_params(axis='x', labelsize=8)
 
     plt.tight_layout()
+    plt.show()
+
+def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -> None:
+    """
+    Plot model performance metrics (MAE, RMSE, and MAPE) as bar charts.
+
+    Args:
+        evaluation_results (List[Dict[str, Union[str, float, None]]]):
+            A list of dictionaries containing model evaluation metrics.
+            Each dictionary should have the following structure:
+            - "Model" (str): The name of the model.
+            - "MAE (min.)" (float): Mean Absolute Error in minutes.
+            - "RMSE (min.)" (float): Root Mean Squared Error in minutes.
+            - "MAPE (%)" (float or None): Mean Absolute Percentage Error in percentage.
+
+    Returns:
+        None: The function displays the plots directly.
+    """
+    df = pd.DataFrame(evaluation_results).set_index("Model")
+    df[['MAE (min.)', 'RMSE (min.)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
+    plt.title('Model Performance (MAE and RMSE)')
+    plt.ylabel('(min.)')
+    plt.xlabel('')
+    plt.xticks(rotation=0, horizontalalignment='center')  # Rotate labels for better readability
+    plt.legend(title="Metrics")
+    plt.show()
+
+    df[['MAPE (%)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
+    plt.title('Model Performance (MAPE)')
+    plt.ylabel('(%)')
+    plt.xlabel('')
+    plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+    plt.xticks(rotation=0, horizontalalignment='center')  # Rotate labels for better readability
+    plt.legend(title="Metrics")
     plt.show()
