@@ -34,6 +34,13 @@ class ModelTraining:
         self.model = None
         self.y_pred = None
 
+        # Directory with available models
+        self.models = {
+            "Linear Regression": self.train_linear_model,
+            "Decision Tree": self.train_decision_tree,
+            "Random Forest": self.train_random_forest
+        }
+
     def train_linear_model(self) -> tuple[RegressionResults, np.ndarray]:
         """
         Trains a Linear Regression model using statsmodels and provides a detailed summary.

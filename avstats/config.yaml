@@ -1,4 +1,16 @@
 data_paths:
   avstats: "../data/avStats_schedule_historical_2023_BRU.csv"
   passengers: "../data/avia_par_be_page_spreadsheet.xlsx"
-  airport_mapping: "../avstats/core/airport_mapping.json"
+  airport_mapping: "../data/airport_mapping.json"
+
+models:
+  random_forest:
+    n_estimators: [100, 200, 300]
+    max_depth: [5, 10, None]
+    random_state: 42
+
+hyperparameters:
+  test_size: 0.2
+  random_state: 42
+routes:
+  focus_route: "BRU-MAD"

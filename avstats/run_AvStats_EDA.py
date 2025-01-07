@@ -4,12 +4,9 @@ import sys
 from pathlib import Path
 import warnings
 
-# Add the base path to sys.path
-BASE_DIR = Path(__file__).resolve().parent.parent
-LOG_DIR = BASE_DIR / 'logs'
-LOG_DIR.mkdir(exist_ok=True)  # Create logs directory if it doesn't exist
-sys.path.append(str(BASE_DIR / 'core'))
-
+# Ensure the logs directory exists
+LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 try:
     from core.DataLoader import DataLoader
@@ -21,20 +18,14 @@ try:
     from avstats.core.EDA_utils import *
     from avstats.core.general_utils import *
 except ModuleNotFoundError as e:
-    print(f"Error: {e}")
-    print(f"Current working directory: {os.getcwd()}")
-    print("Check if the path to the 'core' directory and the modules inside it are correct.")
+    logging.error(f"Module import error: {e}", exc_info=True)
     raise
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(LOG_DIR / 'weather_pipeline.log')
-    ]
-)
+    handlers=[logging.StreamHandler(), logging.FileHandler(LOG_DIR / 'weather_pipeline.log')])
 
 def main():
     try:

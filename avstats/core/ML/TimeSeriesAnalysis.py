@@ -135,7 +135,7 @@ class TimeSeriesAnalysis:
         plt.show()
 
     def arima_sarimax_forecast(self, order: Tuple[int, int, int], seasonal_order: Optional[
-        Tuple[int, int, int, int]] = None) -> Tuple[pd.Series, pd.Series, pd.Series, Union[ARIMA, SARIMAX]]:
+    Tuple[int, int, int, int]] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Union[ARIMA, SARIMAX]]:
         """
         Perform ARIMA or SARIMAX forecasting.
 
@@ -172,18 +172,18 @@ class TimeSeriesAnalysis:
         return test_data, predictions, residuals, model
 
     def rolling_forecast(self, order: Tuple[int, int, int], train_window: int, forecast_steps: int = 1,
-                         seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> Tuple[pd.Series, pd.Series, pd.Series]:
+                     seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Perform rolling forecast.
 
         Args:
-            order (Tuple[int, int, int]): ARIMA order.
-            train_window (int): Number of observations in the training window.
-            forecast_steps (int): Number of steps to forecast.
-            seasonal_order (Optional[Tuple[int, int, int, int]]): SARIMAX seasonal order.
+        order (Tuple[int, int, int]): ARIMA order.
+        train_window (int): Number of observations in the training window.
+        forecast_steps (int): Number of steps to forecast.
+        seasonal_order (Optional[Tuple[int, int, int, int]]): SARIMAX seasonal order.
 
         Returns:
-            Tuple[pd.Series, pd.Series, pd.Series]: Actual data, predictions, and residuals.
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Actual data, predictions, and residuals.
         """
         rolling_predictions = []
         rolling_actual = []
@@ -198,14 +198,13 @@ class TimeSeriesAnalysis:
             rolling_predictions.append(forecast.values[0])
             rolling_actual.append(test_data.values[0])
 
-        rolling_predictions = pd.Series(rolling_predictions, index=self.df[self.column].index[train_window:len(
-            self.df[self.column]) - forecast_steps + 1])
-        rolling_actual = pd.Series(rolling_actual, index=self.df[self.column].index[train_window:len(
-            self.df[self.column]) - forecast_steps + 1])
-
-        # Calculate residuals
+        # Convert to numpy arrays
+        rolling_predictions = np.array(rolling_predictions)
+        rolling_actual = np.array(rolling_actual)
         residuals = rolling_actual - rolling_predictions
 
         # Plot results
-        self.plot_forecast(rolling_predictions, title="Rolling Forecast vs Actual")
+        self.plot_forecast(pd.Series(rolling_predictions,index=self.df[self.column].index[train_window:len(
+            self.df[self.column]) - forecast_steps + 1]),title="Rolling Forecast vs Actual")
+
         return rolling_actual, rolling_predictions, residuals

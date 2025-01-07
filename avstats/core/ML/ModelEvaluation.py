@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
-from typing import Optional, Tuple
+from typing import Tuple, Optional, Dict, Union
 from avstats.core.ML.validators.validator_ModelEvaluation import CrossValidationInput, ModelEvaluationInput
 
 
@@ -47,8 +47,8 @@ def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.
     return np.array(scores)
 
 
-def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None
-                   ) -> Tuple[float, Optional[float], float]:
+def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None) -> (
+        Dict)[str, Union[float, None]]:
     """
     Evaluate model performance using MAE, MAPE, and RMSE.
 
@@ -58,9 +58,10 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
     residuals (Optional[np.ndarray]): Difference between actual and predicted values. Default is None.
 
     Returns:
-    Tuple[float, Optional[float], float]:
+    Tuple[Dict[str, Union[float, None]], float, Optional[float], float]:
+        - Metrics dictionary
         - Mean Absolute Error (MAE)
-        - Mean Absolute Percentage Error (MAPE) (if residuals are provided)
+        - Mean Absolute Percentage Error (MAPE)
         - Root Mean Squared Error (RMSE)
     """
     # Ensure all inputs are numpy arrays
@@ -78,10 +79,9 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
     mape = np.mean(abs(residuals / test_data)) * 100 if residuals is not None else None
     rmse = root_mean_squared_error(test_data, predictions)
 
-    print(f'Mean Absolute Error (MAE): {mae:.2f}min.')
-    print(f'Mean Absolute Percent Error (MAPE): {mape:.2f}%' if mape is not None else "MAPE not available")
-    print(f'Root Mean Squared Error (RMSE): {rmse:.2f}min.')
-    return mae, mape, rmse
+    return {"MAE (min.)": round(mae, 2),
+            "MAPE (%)": round(mape, 2) if mape is not None else None,
+            "RMSE (min.)": round(rmse, 2)}
 
 def plot_combined(model_name, actual, predicted, residuals=None):
     """
