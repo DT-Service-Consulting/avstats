@@ -1,10 +1,13 @@
 import logging
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 import os
 import sys
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from datetime import datetime
+from sklearn.tree import export_text, plot_tree
 
 # Add the base path to sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,9 +22,11 @@ try:
     from core.ML_workflow.DataPreparation import DataPreparation
     from core.ML_workflow.Multicollinearity import Multicollinearity
     from core.ML_workflow.ModelTraining import ModelTraining
+    from core.ML_workflow.ModelComparison import ModelComparison
     from core.ML_workflow.ResidualAnalysis import ResidualAnalysis
     from core.ML_workflow.ModelEvaluation import cross_validate, evaluate_model
-    from core.ML_workflow.TimeSeriesAnalysis import TimeSeriesAnalysis, NeuralNetworks
+    from core.ML_workflow.TimeSeriesAnalysis import TimeSeriesAnalysis
+    from core.ML_workflow.NeuralNetworks import NeuralNetworks
 except ModuleNotFoundError as e:
     print(f"Error: {e}")
     print(f"Current working directory: {os.getcwd()}")
@@ -66,12 +71,24 @@ def main():
         logging.info("Data standardized.")
 
         # Step 4: Regularize data
-        important_features_df, _ = data_prep.select_important_features()
+        important_features_df, important_features = data_prep.select_important_features()
+        sns.set_theme(style="whitegrid")
+        plt.figure(figsize=(10, 6))
+        important_features.plot(kind='bar')
+        plt.title('Top Important Features Based on Lasso Coefficients')
+        plt.xlabel('Features')
+        plt.ylabel('Coefficient Value')
+        plt.show()
 
         # Step 5: Handle multicollinearity
         logging.info("Checking for multicollinearity...")
         multicollinearity = Multicollinearity(scaled_df, target_variable, verbose=False)
         df_vif_cleaned, _ = multicollinearity.remove_high_vif_features()
+        correlation_matrix = df_vif_cleaned.corr()
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap='coolwarm', vmin=-1, vmax=1, annot_kws={"size": 7})
+        plt.title('Correlation Matrix')
+        plt.show()
 
         # Step 6: Split data & Initialize ModelTraining class
         x = df_vif_cleaned.drop(columns=['total_dep_delay'])  # Adjust target variable name if needed
@@ -79,29 +96,36 @@ def main():
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
         logging.info("Data split into training and testing sets.")
         model_training = ModelTraining(x_train, y_train, x_test, y_test)
+        cv = cross_validate(x_train, y_train)
+        logging.info(f"Cross Validation: {cv}")
 
         # Step 7: Linear Regression
         logging.info("Linear Regression model fitting...")
         linear_model, linear_predictions = model_training.train_linear_model()
-        model_training.plot_model()
+        model_training.plot_model("Linear Regression")
         linear_residuals = y_test - linear_predictions
         linear_mae, linear_mape, linear_rmse = evaluate_model(y_test, linear_predictions, linear_residuals)
-        linear_cv = cross_validate(x_train, y_train)
-        #logging.info(f"MAE: {linear_mae}, MPAE: {linear_mape}, RMSE: {linear_rmse}")
-        logging.info(f"Cross Validation: {linear_cv}")
 
-        # Step 8: Random Forest
+        # Step 8: Decision Tree
+        logging.info("Decision Tree model fitting...")
+        decision_model, decision_predictions = model_training.train_decision_tree()
+        model_training.plot_model("Decision Tree")
+        decision_residuals = y_test - decision_predictions
+        decision_mae, decision_mape, decision_rmse = evaluate_model(y_test, decision_predictions, decision_residuals)
+        plt.figure(figsize=(12, 8))
+        plot_tree(decision_model, feature_names=x.columns, filled=True, rounded=True)
+        plt.show()
+        export_text(decision_model, feature_names=list(x.columns))
+
+        # Step 9: Random Forest
         logging.info("Random Forest model fitting...")
         random_forest_model, random_forest_predictions = model_training.train_random_forest()
-        model_training.plot_model()
+        model_training.plot_model("Random Forest")
         random_forest_residuals = y_test - random_forest_predictions
         random_forest_mae, random_forest_mape, random_forest_rmse = evaluate_model(y_test, random_forest_predictions,
                                                                                    random_forest_residuals)
-        random_forest_cv = cross_validate(x_train, y_train)
-        #logging.info(f"MAE: {random_forest_mae}, MPAE: {random_forest_mape}, RMSE: {random_forest_rmse}")
-        logging.info(f"Cross Validation: {random_forest_cv}")
-
-        # Step 9: Hyperparameter tuning with Grid Search
+        """
+        # Step 10: Hyperparameter tuning with Grid Search
         logging.info("Tuning hyperparameters with Grid Search...")
         grid_tuning_model, grid_tuning_parameters, grid_predictions, sample_sizes, grid_train_errors, grid_test_errors = model_training.tune_and_evaluate(
             param_grid=PARAM_GRID_RF,
@@ -111,8 +135,8 @@ def main():
         )
         print(f"Grid Search completed. Best Parameters: {grid_tuning_parameters}")
         grid_cv_mae, grid_cv_mape, grid_cv_rmse = evaluate_model(y_test, grid_predictions)
-
         """
+
         # Step 10: ARIMA
         logging.info("ARIMA model fitting...")
         df_arima = filtered_df.copy()
@@ -121,13 +145,12 @@ def main():
         df_arima = df_arima.resample('D').ffill()
         df_arima.reset_index(inplace=True)
 
-        train_end = datetime(2023, 6, 30)
-        test_end = datetime(2023, 12, 31)
-        start_date = datetime(2023, 1, 1)
-        end_date = datetime(2023, 12, 31)
-
-        arima_analysis = TimeSeriesAnalysis(df_arima, start_date, end_date, train_end, test_end,
+        arima_analysis = TimeSeriesAnalysis(df_arima, datetime(2023, 1, 1),
+                                            datetime(2023, 12, 31),
+                                            datetime(2023, 6, 30),
+                                            datetime(2023, 12, 31),
                                             column='total_dep_delay', date_column='Date')
+
         arima_test_data, arima_predictions, arima_residuals, arima_model = arima_analysis.arima_sarimax_forecast(
             order=(3, 1, 5))  # 3, 1, 3 or 2, 1, 3
         arima_mae, arima_mape, arima_rmse = evaluate_model(arima_test_data, arima_predictions, arima_residuals)
@@ -145,7 +168,7 @@ def main():
             order=(1, 1, 1), train_window=180, seasonal_order=(0, 1, 1, 7)
         )
         rolling_mae, rolling_mape, rolling_rmse = evaluate_model(rolling_actual, rolling_predictions, rolling_residuals)
-
+        """
         # Step 13:
         logging.info("Neural Network model fitting...")
         nn = NeuralNetworks(df_weather)

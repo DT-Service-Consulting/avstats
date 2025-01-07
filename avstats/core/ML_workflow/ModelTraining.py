@@ -78,7 +78,7 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self) -> None:
+    def plot_model(self, title) -> None:
         """
         Plots the model's predicted values against the actual values using a scatter plot.
         """
@@ -89,7 +89,7 @@ class ModelTraining:
         plt.figure(figsize=(10, 6))
         plt.scatter(self.y_test, self.y_pred, alpha=0.7)
         plt.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2)  # Diagonal line
-        plt.title('Predicted vs Actual Values')
+        plt.title(title)
         plt.xlabel('Actual Values')
         plt.ylabel('Predicted Values')
         plt.xlim(self.y_test.min(), self.y_test.max())
