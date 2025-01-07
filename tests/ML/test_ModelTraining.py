@@ -69,11 +69,12 @@ def test_plot_model(sample_data):
     x_train, y_train, x_test, y_test = sample_data
     model_trainer = ModelTraining(x_train, y_train, x_test, y_test)
 
+    # Train a random forest model to generate predictions
     model_trainer.train_random_forest()
 
     # Ensure no exceptions are raised during plotting
     try:
-        model_trainer.plot_model()
+        model_trainer.plot_model("Random Forest: Predicted vs Actual Values")
     except Exception as e:
         pytest.fail(f"Plotting failed with exception: {e}")
 
