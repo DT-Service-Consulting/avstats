@@ -22,15 +22,12 @@ try:
     from core.ML_workflow.DataPreparation import DataPreparation
     from core.ML_workflow.Multicollinearity import Multicollinearity
     from core.ML_workflow.ModelTraining import ModelTraining
-    from core.ML_workflow.ModelComparison import ModelComparison
-    from core.ML_workflow.ResidualAnalysis import ResidualAnalysis
-    from core.ML_workflow.ModelEvaluation import cross_validate, evaluate_model
     from core.ML_workflow.TimeSeriesAnalysis import TimeSeriesAnalysis
     from core.ML_workflow.NeuralNetworks import NeuralNetworks
+    from core.ML_workflow.ModelEvaluation import cross_validate, evaluate_model, plot_combined
+    from core.ML_workflow.ResidualAnalysis import ResidualAnalysis
 except ModuleNotFoundError as e:
-    print(f"Error: {e}")
-    print(f"Current working directory: {os.getcwd()}")
-    print("Check if the path to the 'core' directory and the modules inside it are correct.")
+    logging.error(f"Module import error: {e}", exc_info=True)
     raise
 
 # Configure logging
@@ -48,10 +45,8 @@ def main():
         logging.info("Starting Data Modeling and Predicting Pipeline...")
 
         # Load the dataset
-        file_path = os.path.join("..", "data", "df_merged.csv")
-        file_path_weather = os.path.join("..", "data", "df_weather.csv")
-        df_merged = pd.read_csv(file_path)
-        df_weather = pd.read_csv(file_path_weather)
+        df_merged = pd.read_csv(os.path.join("..", "data", "df_merged.csv"))
+        df_weather = pd.read_csv(os.path.join("..", "data", "df_weather.csv"))
         logging.info("Dataset loaded successfully.")
 
         # Step 1: Encode routes
@@ -59,10 +54,9 @@ def main():
         df_encoded, corr_df, route_columns = data_encoding.encode_routes()
         df_clean = data_encoding.clean_data()
 
-        data_encoding_weather = OneHotEncoding(df_weather)
-        df_encoded_weather, corr_df_weather, route_columns_weather = data_encoding_weather.encode_routes()
+        df_encoded_weather, corr_df_weather, route_columns_weather = OneHotEncoding(df_weather).encode_routes()
         df_encoded_weather['BRU-MAD'] = pd.to_numeric(df_encoded_weather['BRU-MAD'], errors='coerce')
-        filtered_df = df_encoded_weather[df_encoded_weather['BRU-MAD'] == 2]
+        one_route_df = df_encoded_weather[df_encoded_weather['BRU-MAD'] == 2]
         logging.info("Routes encoded successfully.")
 
         # Step 3: Standardize data
@@ -96,34 +90,41 @@ def main():
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
         logging.info("Data split into training and testing sets.")
         model_training = ModelTraining(x_train, y_train, x_test, y_test)
+        evaluation_results = []
+
+        # Step 7: Cross-validation
         cv = cross_validate(x_train, y_train)
         logging.info(f"Cross Validation: {cv}")
 
-        # Step 7: Linear Regression
+        # Step 8: Linear Regression
         logging.info("Linear Regression model fitting...")
         linear_model, linear_predictions = model_training.train_linear_model()
         model_training.plot_model("Linear Regression")
         linear_residuals = y_test - linear_predictions
         linear_mae, linear_mape, linear_rmse = evaluate_model(y_test, linear_predictions, linear_residuals)
+        evaluation_results.append({"Model": "Linear Regression",
+                                   **{"MAE (min.)": linear_mae, "MAPE (%)": linear_mape, "RMSE (min.)": linear_rmse}})
 
-        # Step 8: Decision Tree
+        # Step 9: Decision Tree
         logging.info("Decision Tree model fitting...")
         decision_model, decision_predictions = model_training.train_decision_tree()
         model_training.plot_model("Decision Tree")
         decision_residuals = y_test - decision_predictions
         decision_mae, decision_mape, decision_rmse = evaluate_model(y_test, decision_predictions, decision_residuals)
+        evaluation_results.append({"Model": "Decision Tree", **{"MAE (min.)": decision_mae, "MAPE (%)": decision_mape,
+                                                                "RMSE (min.)": decision_rmse}})
         plt.figure(figsize=(12, 8))
         plot_tree(decision_model, feature_names=x.columns, filled=True, rounded=True)
         plt.show()
         export_text(decision_model, feature_names=list(x.columns))
 
-        # Step 9: Random Forest
+        # Step 10: Random Forest
         logging.info("Random Forest model fitting...")
-        random_forest_model, random_forest_predictions = model_training.train_random_forest()
+        random_f_model, random_f_predictions = model_training.train_random_forest()
         model_training.plot_model("Random Forest")
-        random_forest_residuals = y_test - random_forest_predictions
-        random_forest_mae, random_forest_mape, random_forest_rmse = evaluate_model(y_test, random_forest_predictions,
-                                                                                   random_forest_residuals)
+        random_f_residuals = y_test - random_f_predictions
+        random_f_mae, random_f_mape, random_f_rmse = evaluate_model(y_test, random_f_predictions, random_f_residuals)
+        evaluation_results.append({"Model": "Random Forest", **{"MAE (min.)": random_f_mae, "MAPE (%)": random_f_mape, "RMSE (min.)": random_f_rmse}})
         """
         # Step 10: Hyperparameter tuning with Grid Search
         logging.info("Tuning hyperparameters with Grid Search...")
@@ -137,44 +138,51 @@ def main():
         grid_cv_mae, grid_cv_mape, grid_cv_rmse = evaluate_model(y_test, grid_predictions)
         """
 
-        # Step 10: ARIMA
+        # Step 11: ARIMA
         logging.info("ARIMA model fitting...")
-        df_arima = filtered_df.copy()
-        df_arima['Date'] = pd.to_datetime(df_arima['Date'])
-        df_arima.set_index('Date', inplace=True)
-        df_arima = df_arima.resample('D').ffill()
-        df_arima.reset_index(inplace=True)
-
-        arima_analysis = TimeSeriesAnalysis(df_arima, datetime(2023, 1, 1),
-                                            datetime(2023, 12, 31),
-                                            datetime(2023, 6, 30),
-                                            datetime(2023, 12, 31),
-                                            column='total_dep_delay', date_column='Date')
-
-        arima_test_data, arima_predictions, arima_residuals, arima_model = arima_analysis.arima_sarimax_forecast(
-            order=(3, 1, 5))  # 3, 1, 3 or 2, 1, 3
+        arima_analysis = TimeSeriesAnalysis(one_route_df, datetime(2023, 1, 1), datetime(2023, 12, 31), datetime(2023, 6, 30), datetime(2023, 12, 31), column='total_dep_delay', date_column='Date')
+        arima_test_data, arima_predictions, arima_residuals, arima_model = arima_analysis.arima_sarimax_forecast(order=(3, 1, 5))
         arima_mae, arima_mape, arima_rmse = evaluate_model(arima_test_data, arima_predictions, arima_residuals)
+        evaluation_results.append({"Model": "ARIMA", "MAE (min.)": arima_mae, "MAPE (%)": arima_mape, "RMSE (min.)": arima_rmse})
 
-        # Step 11: SARIMAX
+        # Step 12: SARIMAX
         logging.info("SARIMAX model fitting...")
         sarimax_test_data, sarimax_predictions, sarimax_residuals, sarimax_model = arima_analysis.arima_sarimax_forecast(
             order=(1, 0, 1), seasonal_order=(0, 1, 1, 30))
-        sarimax_mae, sarimax_mape, sarimax_rmse = evaluate_model(sarimax_test_data, sarimax_predictions,
-                                                                 sarimax_residuals)
+        sarimax_mae, sarimax_mape, sarimax_rmse = evaluate_model(sarimax_test_data, sarimax_predictions, sarimax_residuals)
+        evaluation_results.append({"Model": "SARIMAX", "MAE (min.)": sarimax_mae, "MAPE (%)": sarimax_mape, "RMSE (min.)": sarimax_rmse})
 
-        # Step 12: Rolling Forecast Origin
+        # Step 13: Rolling Forecast Origin
         logging.info("Rolling Forecast Origin model fitting...")
         rolling_actual, rolling_predictions, rolling_residuals = arima_analysis.rolling_forecast(
             order=(1, 1, 1), train_window=180, seasonal_order=(0, 1, 1, 7)
         )
         rolling_mae, rolling_mape, rolling_rmse = evaluate_model(rolling_actual, rolling_predictions, rolling_residuals)
+        evaluation_results.append({"Model": "Rolling Forecast", "MAE (min.)": rolling_mae, "MAPE (%)": rolling_mape, "RMSE (min.)": rolling_rmse})
+
+        # Step 14: Model Comparison
+        plot_combined("ARIMA", arima_test_data, arima_predictions, arima_residuals)
+        plot_combined("SARIMAX", sarimax_test_data, sarimax_predictions, sarimax_residuals)
+        plot_combined("Rolling Forecast", rolling_actual, rolling_predictions, rolling_residuals)
+        evaluation_df = pd.DataFrame(evaluation_results)
+        evaluation_data = evaluation_df.set_index('Model')
+
+        # Visualizations
+        evaluation_data[['MAE (min.)', 'RMSE (min.)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
+        plt.title('Model Performance (MAE and RMSE)')
+        plt.show()
+        evaluation_data[['MAPE (%)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
+        plt.title('Model Performance (MAPE)')
+        plt.show()
+
         """
-        # Step 13:
+        # Step 14:
         logging.info("Neural Network model fitting...")
         nn = NeuralNetworks(df_weather)
         nn_actual, nn_predictions = nn.neural_networks()
         nn_residuals = nn_actual - nn_predictions
         nn_mae, nn_mape, nn_rmse = evaluate_model(nn_actual, nn_predictions, nn_residuals)
+        evaluation_results.append({"Model": "Neural Networks", **{"MAE (min.)": nn_mae, "MAPE (%)":nn_mape, "RMSE (min.)": nn_rmse}})
         """
     except Exception as e:
         logging.error(f"Error in Modeling and Predicting Pipeline: {e}", exc_info=True)
@@ -182,4 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

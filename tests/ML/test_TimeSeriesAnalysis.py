@@ -2,14 +2,14 @@ import pytest
 import pandas as pd
 import numpy as np
 from avstats.core.ML_workflow.TimeSeriesAnalysis import TimeSeriesAnalysis, adf_test
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 
 @pytest.fixture
 def sample_data():
+    # Create a DataFrame with a 'Date' column and random time series data
+    date_range = pd.date_range(start='2020-01-01', periods=100, freq='D')
     data = {
-        'date': pd.date_range(start='2020-01-01', periods=100, freq='D'),
+        'Date': date_range,
         'value': np.random.randn(100).cumsum()
     }
     return pd.DataFrame(data)
@@ -23,8 +23,7 @@ def tsa_instance(sample_data):
         end_date=pd.Timestamp('2020-04-09'),
         train_end=pd.Timestamp('2020-03-01'),
         test_end=pd.Timestamp('2020-03-31'),
-        column='value',
-        date_column='date'
+        column='value'
     )
 
 
@@ -47,8 +46,7 @@ def test_time_series_analysis_validation(sample_data):
         end_date=pd.Timestamp('2020-04-09'),
         train_end=pd.Timestamp('2020-03-01'),
         test_end=pd.Timestamp('2020-03-31'),
-        column='value',
-        date_column='date'
+        column='value'
     )
     assert isinstance(valid_instance, TimeSeriesAnalysis), "Failed to validate a valid instance"
 
@@ -60,8 +58,7 @@ def test_time_series_analysis_validation(sample_data):
             end_date=pd.Timestamp('2020-01-01'),
             train_end=pd.Timestamp('2020-03-01'),
             test_end=pd.Timestamp('2020-03-31'),
-            column='value',
-            date_column='date'
+            column='value'
         )
 
 

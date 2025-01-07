@@ -32,7 +32,7 @@ def adf_test(series: Union[pd.Series, List[float], np.ndarray]) -> float:
 
 class TimeSeriesAnalysis:
     def __init__(self, df: pd.DataFrame, start_date: datetime, end_date: datetime, train_end: datetime,
-                 test_end: datetime, column: str, date_column: str):
+                 test_end: datetime, column: str):
         """
         Initialize the TimeSeriesAnalysis class.
 
@@ -43,11 +43,10 @@ class TimeSeriesAnalysis:
             train_end (datetime): The last date for training data.
             test_end (datetime): The last date for testing data.
             column (str): The target column for analysis.
-            date_column (str): The column representing dates.
         """
         # Validate inputs with Pydantic
         validated_inputs = TimeSeriesAnalysisInput(df=df, start_date=start_date, end_date=end_date, train_end=train_end,
-                                                   test_end=test_end, column=column, date_column=date_column)
+                                                   test_end=test_end, column=column)
 
         # Store validated inputs
         self.df = validated_inputs.df
@@ -56,12 +55,15 @@ class TimeSeriesAnalysis:
         self.train_end = validated_inputs.train_end
         self.test_end = validated_inputs.test_end
         self.column = validated_inputs.column
-        self.date_column = validated_inputs.date_column
 
-        # Set the date column as index and ensure frequency
-        self.df[date_column] = pd.to_datetime(self.df[date_column])
-        self.df.set_index(date_column, inplace=True)
-        self.df = self.df.asfreq('D')
+        # Convert 'Date' to datetime and set as index
+        self.df = self.df.copy()
+        self.df['Date'] = pd.to_datetime(self.df['Date'])
+        self.df.set_index('Date', inplace=True)
+
+        # Resample and forward-fill missing values
+        self.df = self.df.resample('D').ffill()
+        self.df = self.df.loc[start_date:end_date]
 
     def check_stationarity(self, max_diffs: int = 2) -> Tuple[pd.Series, bool]:
         """

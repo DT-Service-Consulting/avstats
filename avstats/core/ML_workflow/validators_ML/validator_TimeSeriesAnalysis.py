@@ -11,7 +11,6 @@ class TimeSeriesAnalysisInput(BaseModel):
     train_end: datetime
     test_end: datetime
     column: str
-    date_column: str
 
     model_config = ConfigDict(arbitrary_types_allowed=True)  # Set arbitrary_types_allowed
 
@@ -48,10 +47,3 @@ class TimeSeriesAnalysisInput(BaseModel):
         if df is not None and column not in df.columns:
             raise ValueError(f"Column '{column}' not found in the dataframe")
         return column
-
-    @field_validator("date_column")
-    def validate_date_column(cls, date_column: str, info: ValidationInfo):
-        df = info.data.get("df")
-        if df is not None and date_column not in df.columns:
-            raise ValueError(f"Date column '{date_column}' not found in the dataframe")
-        return date_column
