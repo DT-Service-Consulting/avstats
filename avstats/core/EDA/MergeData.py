@@ -136,4 +136,8 @@ class MergeData:
             right_on=['route_code', 'Month'],
             how='inner'
         )
+
+        # Drop the `route_code` column
+        df_merged.drop(columns=['route_code'], inplace=True)
+
         return df_merged

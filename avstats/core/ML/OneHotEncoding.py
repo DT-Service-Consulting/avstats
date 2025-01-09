@@ -1,6 +1,6 @@
 # core/ML/OneHotEncoding.py
 import pandas as pd
-from typing import Optional
+from typing import Optional, Tuple, Any
 from avstats.core.ML.validators.validator_OneHotEncoding import OneHotEncodingInput
 
 
@@ -60,7 +60,7 @@ class OneHotEncoding:
             print(f"Encoding error: {e}")
             return None
 
-    def clean_data(self) -> pd.DataFrame:
+    def clean_data(self) -> tuple[Any, Any]:
         """
         Removes columns in the encoded dataframe where all values are zero
         and converts 'total_passengers' to numeric format.
@@ -79,16 +79,16 @@ class OneHotEncoding:
             raise KeyError("'total_passengers' column is missing from the dataframe.")
 
         # Remove columns where all values are zero
-        non_zero_columns = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)].copy()
+        df_cleaned = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)].copy()
 
         # Ensure 'total_passengers' is in the dataframe
-        if 'total_passengers' not in non_zero_columns.columns:
-            non_zero_columns['total_passengers'] = self.df_encoded['total_passengers']
+        if 'total_passengers' not in df_cleaned.columns:
+            df_cleaned['total_passengers'] = self.df_encoded['total_passengers']
 
         # Convert 'total_passengers' to numeric, coercing errors to NaN
-        non_zero_columns['total_passengers'] = pd.to_numeric(non_zero_columns['total_passengers'], errors='coerce')
+        df_cleaned['total_passengers'] = pd.to_numeric(df_cleaned['total_passengers'], errors='coerce')
 
         # Select only numeric columns
-        df_numeric = non_zero_columns.select_dtypes(include=['number'])
+        df_numeric = df_cleaned.select_dtypes(include=['number'])
 
-        return df_numeric
+        return df_numeric, df_cleaned
