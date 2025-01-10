@@ -76,7 +76,7 @@ def main():
         cv = cross_validate(x_train, y_train)
         logging.info(f"Cross Validation: {cv}")
 
-        # Step 8: Train and evaluate models
+        # Step 8: Train and evaluate models (Linear Regression, Decision Tree, and Random Forest)
         for model_name, model_func in model_training.models.items():
             logging.info(f"{model_name} model fitting...")
             model, predictions = model_func()
@@ -85,16 +85,14 @@ def main():
             metrics = evaluate_model(y_test, predictions, residuals)
             evaluation_results.append({"Model": model_name, **metrics})
 
-        """# Step 9: Hyperparameter tuning with Grid Search
-        logging.info("Tuning hyperparameters with Grid Search...")
-        grid_tuning_model, grid_tuning_parameters, grid_predictions, sample_sizes, grid_train_errors, grid_test_errors = model_training.tune_and_evaluate(
-            param_grid=PARAM_GRID_RF,
-            verbose=0,
-            search_type='grid',
-            log_scale=True  # Use log scale for sample sizes
-        )
-        print(f"Grid Search completed. Best Parameters: {grid_tuning_parameters}")
-        grid_cv_mae, grid_cv_mape, grid_cv_rmse = evaluate_model(y_test, grid_predictions)"""
+        """# Step 9:
+        logging.info("Neural Network model fitting...")
+        nn = NeuralNetworks(df_weather)
+        nn_actual, nn_predictions = nn.neural_networks()
+        nn_residuals = nn_actual - nn_predictions
+        nn_metrics = evaluate_model(nn_actual, nn_predictions, nn_residuals)
+        evaluation_results.append({"Model": "Neural Networks", **nn_metrics})
+        """
 
         # Step 10: ARIMA
         logging.info("ARIMA model fitting...")
@@ -128,14 +126,6 @@ def main():
         plot_metrics(evaluation_results)
         print(evaluation_df)
 
-        """# Step 14:
-        logging.info("Neural Network model fitting...")
-        nn = NeuralNetworks(df_weather)
-        nn_actual, nn_predictions = nn.neural_networks()
-        nn_residuals = nn_actual - nn_predictions
-        nn_metrics = evaluate_model(nn_actual, nn_predictions, nn_residuals)
-        evaluation_results.append({"Model": "Neural Networks", **nn_metrics})
-        """
     except Exception as e:
         logging.error(f"Error in Modeling and Predicting Pipeline: {e}", exc_info=True)
         raise

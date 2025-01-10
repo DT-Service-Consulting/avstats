@@ -135,7 +135,7 @@ class ModelPipeline:
         data = self.df['total_dep_delay'].astype(float)
         n = len(data)
         predictions = []
-        actuals = []
+        actual_values = []
 
         # Default parameter handling
         default_params = {"order": (1, 1, 1)}  # Default ARIMA params
@@ -161,15 +161,15 @@ class ModelPipeline:
                 # Forecast
                 forecast = model.forecast(steps=forecast_horizon)
                 predictions.extend(forecast)
-                actuals.extend(test_data)
+                actual_values.extend(test_data)
             except Exception as e:
                 logging.warning(f"Error during rolling forecast: {e}")
                 continue
 
         # Calculate metrics
-        if len(predictions) > 0 and len(actuals) > 0:
-            mae = mean_absolute_error(actuals, predictions)
-            rmse = np.sqrt(mean_squared_error(actuals, predictions))
+        if len(predictions) > 0 and len(actual_values) > 0:
+            mae = mean_absolute_error(actual_values, predictions)
+            rmse = np.sqrt(mean_squared_error(actual_values, predictions))
         else:
             mae, rmse = float("inf"), float("inf")  # Handle cases with no valid forecasts
 
@@ -177,5 +177,5 @@ class ModelPipeline:
             "mae": mae,
             "rmse": rmse,
             "predictions": predictions,
-            "actuals": actuals,
+            "actual_values": actual_values,
         }
