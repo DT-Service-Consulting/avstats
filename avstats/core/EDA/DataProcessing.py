@@ -1,6 +1,7 @@
 # DataProcessing.py
 import pandas as pd
 from avstats.core.EDA.NewFeatures import NewFeatures
+from avstats.core.EDA.validators.validator_DataProcessing import DataProcessingInput
 
 
 class DataProcessing:
@@ -11,8 +12,11 @@ class DataProcessing:
         Parameters:
         unique_column (str): The name of the column to check for duplicates.
         """
-        self.df = df
-        self.unique_column = unique_column
+        # Validate inputs using Pydantic
+        validated_input = DataProcessingInput(df=df, unique_column=unique_column)
+
+        self.df = validated_input.df
+        self.unique_column = validated_input.unique_column
 
     def preprocess_avstats(self) -> pd.DataFrame:
         """

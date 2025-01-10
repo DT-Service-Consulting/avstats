@@ -1,4 +1,5 @@
 # NewFeatures.py
+from avstats.core.EDA.validators.validator_NewFeatures import CategorizeFlightInput, GetTimeWindowInput
 
 
 class NewFeatures:
@@ -10,9 +11,12 @@ class NewFeatures:
         Returns:
         str: The category of the flight.
         """
-        if cargo:
+        # Validate inputs using Pydantic
+        validated_input = CategorizeFlightInput(cargo=cargo, private=private)
+
+        if validated_input.cargo:
             return 'Cargo'
-        elif private:
+        elif validated_input.private:
             return 'Private'
         return 'Commercial'
 
@@ -30,10 +34,13 @@ class NewFeatures:
         Raises:
         ValueError: If the hour is not between 0 and 23.
         """
-        if hour < 0 or hour > 23:
+        # Validate inputs using Pydantic
+        validated_input = GetTimeWindowInput(hour=hour)
+
+        if validated_input.hour < 0 or validated_input.hour > 23:
             raise ValueError("Hour must be between 0 and 23")
-        if hour < 12:
+        if validated_input.hour < 12:
             return 'Morning'
-        elif hour < 18:
+        elif validated_input.hour < 18:
             return 'Afternoon'
         return 'Evening'

@@ -6,6 +6,7 @@ from meteostat import Daily, Point
 from datetime import datetime
 from airportsdata import load # (pip install airportsdata)
 from typing import Optional
+from avstats.core.EDA.validators.validator_WeatherData import WeatherDataInput
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 

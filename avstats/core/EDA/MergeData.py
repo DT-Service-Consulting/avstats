@@ -1,6 +1,7 @@
 # MergeData.py
 import pandas as pd
 import numpy as np
+from avstats.core.EDA.validators.validator_MergeData import MergeDataInput
 
 
 class MergeData:
@@ -11,7 +12,8 @@ class MergeData:
         Args:
             df (pd.DataFrame): Input DataFrame with flight and weather data.
         """
-        self.df = df.copy()
+        validated_input = MergeDataInput(df=df)  # Validate the input DataFrame
+        self.df = validated_input.df.copy()
         self.df_grouped = None
 
     def preprocess_datetime(self) -> None:

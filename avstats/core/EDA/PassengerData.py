@@ -1,6 +1,7 @@
 # PassengerData.py
 import pandas as pd
 from typing import Optional, Dict
+from avstats.core.EDA.validators.validator_PassengerData import PassengerDataInput
 
 
 class PassengerData:
