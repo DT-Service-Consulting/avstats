@@ -1,103 +1,181 @@
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.model_selection import learning_curve, GridSearchCV
-from typing import Callable, Dict, Tuple, Optional, Any
-import logging
+from typing import Any, Dict, List, Optional, Union
+from sklearn.model_selection import GridSearchCV, learning_curve
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+
 
 class ModelPipeline:
-    def __init__(self, model: Any, param_grid: Optional[Dict] = None, scoring: str = 'neg_mean_squared_error'):
-        """
-        Initialize the ModelPipeline class.
-
-        Args:
-            model (Any): A machine learning or time series model instance.
-            param_grid (Optional[Dict]): A dictionary of hyperparameters for tuning.
-            scoring (str): Scoring metric for evaluation during grid search.
-        """
+    def __init__(
+            self,
+            model: Any,
+            df: Optional[pd.DataFrame] = None,
+            param_grid: Optional[Union[Dict, List[Dict]]] = None,
+            model_type: str = "ml",
+            scoring: str = "neg_mean_squared_error",
+    ):
         self.model = model
+        self.df = df
         self.param_grid = param_grid
+        self.model_type = model_type
         self.scoring = scoring
         self.best_model = None
         self.results = {}
 
-    def hyperparameter_tuning(self, x_train: np.ndarray, y_train: np.ndarray, search_type: str = 'grid') -> Any:
+    def hyperparameter_tuning(self, x_train=None, y_train=None):
         """
-        Perform hyperparameter tuning using GridSearchCV or RandomizedSearchCV.
-
-        Args:
-            x_train (np.ndarray): Training features.
-            y_train (np.ndarray): Training target values.
-            search_type (str): 'grid' for GridSearchCV, 'random' for RandomizedSearchCV.
-
-        Returns:
-            Any: The best estimator after hyperparameter tuning.
+        Perform hyperparameter tuning for both ML and time-series models.
         """
         if not self.param_grid:
-            logging.warning("No hyperparameter grid provided. Skipping tuning.")
-            return self.model
+            logging.warning(f"No hyperparameter grid provided for {self.model}. Skipping tuning.")
+            if self.model_type not in ["arima", "sarimax"]:
+                self.best_model = self.model.fit(x_train, y_train)
+            self.results["best_params"] = "No tuning performed"
+            return self.best_model
 
-        if search_type == 'grid':
-            search = GridSearchCV(self.model, self.param_grid, scoring=self.scoring, cv=5, verbose=1, n_jobs=-1)
+        if self.model_type in ["arima", "sarimax"]:
+            best_score = float("inf")
+            for params in self.param_grid:
+                try:
+                    # Ensure endog is a pd.Series
+                    endog = self.df['total_dep_delay'].astype(float)
+
+                    if self.model_type == "arima":
+                        model = self.model(endog=endog, **params).fit()
+                    elif self.model_type == "sarimax":
+                        model = self.model(endog=endog, exog=None, **params).fit()
+
+                    # Evaluate model
+                    test_data = endog[-30:]  # Use the last 30 days as test data
+                    mae = self.evaluate_arima(model, test_data=test_data)
+
+                    # Track best parameters
+                    if mae < best_score:
+                        best_score = mae
+                        self.best_model = model
+                        self.results["best_params"] = params
+                except Exception as e:
+                    logging.warning(f"Error with parameters {params}: {e}")
         else:
-            raise ValueError("Unsupported search_type. Use 'grid' for GridSearchCV.")
-
-        search.fit(x_train, y_train)
-        self.best_model = search.best_estimator_
-        self.results['best_params'] = search.best_params_
-        logging.info(f"Best Parameters: {search.best_params_}")
+            # ML models
+            search = GridSearchCV(self.model, self.param_grid, scoring=self.scoring, cv=5, verbose=1, n_jobs=-1)
+            search.fit(x_train, y_train)
+            self.best_model = search.best_estimator_
+            self.results["best_params"] = search.best_params_
+        logging.info(f"Best Parameters: {self.results.get('best_params', 'No valid parameters')}")
         return self.best_model
 
-    def plot_learning_curve(self, x: np.ndarray, y: np.ndarray, title: str, cv: int = 5, n_jobs: int = -1):
+    @staticmethod
+    def evaluate_arima(model, test_data):
         """
-        Generate and plot a learning curve.
+        Evaluate ARIMA/SARIMAX using Mean Absolute Error (MAE).
+        """
+        try:
+            forecast = model.forecast(steps=len(test_data))
+            mae = mean_absolute_error(test_data, forecast)
+            return mae
+        except Exception as e:
+            logging.error(f"Error during ARIMA evaluation: {e}")
+            return float("inf")
 
-        Args:
-            x (np.ndarray): Features.
-            y (np.ndarray): Target values.
-            title (str): Title of the plot.
-            cv (int): Number of cross-validation folds.
-            n_jobs (int): Number of parallel jobs for computation.
+    def plot_learning_curve(self, x, y, title, cv=5):
         """
+        Plot the learning curve for ML models.
+        """
+        if self.model_type in ["arima", "sarimax"]:
+            logging.info(f"Learning curves are not applicable for {self.model_type} models.")
+            return
+
         train_sizes, train_scores, test_scores = learning_curve(
-            self.model, x, y, cv=cv, scoring=self.scoring, n_jobs=n_jobs, train_sizes=np.linspace(0.1, 1.0, 10)
+            self.model, x, y, cv=cv, scoring=self.scoring, train_sizes=np.linspace(0.1, 1.0, 10)
         )
+        train_mean = -np.mean(train_scores, axis=1)
+        test_mean = -np.mean(test_scores, axis=1)
 
-        train_mean = np.mean(-train_scores, axis=1)
-        train_std = np.std(-train_scores, axis=1)
-        test_mean = np.mean(-test_scores, axis=1)
-        test_std = np.std(-test_scores, axis=1)
-
-        plt.figure(figsize=(10, 6))
+        plt.figure()
         plt.plot(train_sizes, train_mean, label="Training Score", color="blue")
-        plt.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, color="blue", alpha=0.2)
         plt.plot(train_sizes, test_mean, label="Validation Score", color="orange")
-        plt.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, color="orange", alpha=0.2)
         plt.title(f"Learning Curve: {title}")
         plt.xlabel("Training Size")
         plt.ylabel("Error")
-        plt.legend(loc="best")
-        plt.grid()
+        plt.legend()
         plt.show()
 
-    def train_and_evaluate(self, x_train: np.ndarray, x_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray):
+    def train_and_evaluate(self, x_train, x_test, y_train, y_test):
         """
-        Train and evaluate the model on the given dataset.
-
-        Args:
-            x_train (np.ndarray): Training features.
-            x_test (np.ndarray): Testing features.
-            y_train (np.ndarray): Training target values.
-            y_test (np.ndarray): Testing target values.
+        Train and evaluate the model.
         """
         self.model.fit(x_train, y_train)
         predictions = self.model.predict(x_test)
-        residuals = y_test - predictions
-
-        # Evaluate metrics
-        metrics = evaluate_model(y_test, predictions, residuals)
-        self.results['metrics'] = metrics
-        logging.info(f"Evaluation Metrics: {metrics}")
-
-        # Return the trained model and predictions
+        mae = mean_absolute_error(y_test, predictions)
+        rmse = np.sqrt(mean_squared_error(y_test, predictions))
+        self.results["metrics"] = {"mae": mae, "rmse": rmse}
+        logging.info(f"Evaluation Metrics: MAE={mae}, RMSE={rmse}")
         return self.model, predictions
+
+    def rolling_forecast(self, train_window=30, forecast_horizon=1):
+        """
+        Perform rolling forecast evaluation for time-series models.
+        Args:
+            train_window (int): Number of time steps in the rolling training window.
+            forecast_horizon (int): Number of steps to forecast at each iteration.
+        Returns:
+            dict: Evaluation metrics (MAE and RMSE) and forecasts.
+        """
+        if self.model_type not in ["arima", "sarimax"]:
+            raise ValueError("Rolling forecast is applicable only to ARIMA/SARIMAX models.")
+
+        data = self.df['total_dep_delay'].astype(float)
+        n = len(data)
+        predictions = []
+        actuals = []
+
+        # Default parameter handling
+        default_params = {"order": (1, 1, 1)}  # Default ARIMA params
+        params = self.results.get("best_params", default_params)
+
+        for start in range(n - train_window - forecast_horizon + 1):
+            # Define rolling train and test sets
+            train_data = data[start: start + train_window]
+            test_data = data[start + train_window: start + train_window + forecast_horizon]
+
+            # Skip if insufficient data for a window
+            if len(train_data) == 0 or len(test_data) == 0:
+                logging.warning(f"Skipping rolling window at start={start} due to insufficient data.")
+                continue
+
+            # Fit the model
+            try:
+                if self.model_type == "arima":
+                    model = self.model(endog=train_data, **params).fit()
+                elif self.model_type == "sarimax":
+                    model = self.model(endog=train_data, exog=None, **params).fit()
+
+                # Forecast
+                forecast = model.forecast(steps=forecast_horizon)
+                predictions.extend(forecast)
+                actuals.extend(test_data)
+            except Exception as e:
+                logging.warning(f"Error during rolling forecast: {e}")
+                continue
+
+        # Calculate metrics
+        if len(predictions) > 0 and len(actuals) > 0:
+            mae = mean_absolute_error(actuals, predictions)
+            rmse = np.sqrt(mean_squared_error(actuals, predictions))
+        else:
+            mae, rmse = float("inf"), float("inf")  # Handle cases with no valid forecasts
+
+        return {
+            "mae": mae,
+            "rmse": rmse,
+            "predictions": predictions,
+            "actuals": actuals,
+        }
