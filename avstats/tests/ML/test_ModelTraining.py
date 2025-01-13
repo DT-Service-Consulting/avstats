@@ -77,32 +77,3 @@ def test_plot_model(sample_data):
         model_trainer.plot_model("Random Forest: Predicted vs Actual Values")
     except Exception as e:
         pytest.fail(f"Plotting failed with exception: {e}")
-
-
-def test_tune_and_evaluate(sample_data):
-    """Test hyperparameter tuning and evaluation."""
-    x_train, y_train, x_test, y_test = sample_data
-    model_trainer = ModelTraining(x_train, y_train, x_test, y_test)
-
-    param_grid = {
-        'max_depth': [2, 5, 10],
-        'min_samples_split': [2, 5, 10]
-    }
-
-    best_model, best_params, y_pred, sample_sizes, train_errors, test_errors = model_trainer.tune_and_evaluate(
-        param_grid=param_grid,
-        verbose=0,
-        search_type='grid',
-        cv=3
-    )
-
-    assert best_model is not None, "Best model should not be None"
-    assert isinstance(best_params, dict), "Best parameters should be a dictionary"
-    assert isinstance(y_pred, np.ndarray), "Predictions should be a numpy array"
-    assert len(y_pred) == len(y_test), "Predictions length should match test set length"
-    assert len(sample_sizes) == len(train_errors) == len(
-        test_errors), "Sample sizes, train errors, and test errors lengths should match"
-
-    # Ensure errors are non-negative
-    assert all(e >= 0 for e in train_errors), "All training errors should be non-negative"
-    assert all(e >= 0 for e in test_errors), "All test errors should be non-negative"

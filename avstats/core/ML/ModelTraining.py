@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from typing import Tuple, Dict, Union, List, Any
+from typing import Tuple, Dict, Union, List
 from statsmodels.regression.linear_model import RegressionResults
 from avstats.core.ML.validators.validator_ModelTraining import ModelTrainingInput
 
@@ -96,78 +96,10 @@ class ModelTraining:
         plt.figure(figsize=(10, 6))
         plt.scatter(self.y_test, self.y_pred, alpha=0.7)
         plt.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2)  # Diagonal line
-        plt.title(title)
-        plt.xlabel('Actual Values')
-        plt.ylabel('Predicted Values')
+        plt.title(f"Monthly Delays - {title}")
+        plt.xlabel('Actual Values (min.)')
+        plt.ylabel('Predicted Values (min.)')
         plt.xlim(self.y_test.min(), self.y_test.max())
         plt.ylim(self.y_test.min(), self.y_test.max())
         plt.grid()
         plt.show()
-
-    def tune_and_evaluate(self, param_grid: Dict, verbose: int, search_type: str = 'grid', cv: int = 5,
-                          scoring: str = 'neg_mean_squared_error', n_iter: int = 10, log_scale: bool = False) -> Tuple[
-        Union[GridSearchCV, RandomizedSearchCV], Dict, np.ndarray, List[int], List[float], List[float]]:
-        """
-        Performs hyperparameter tuning (Grid Search or Randomized Search) and evaluates the best model on test data.
-
-        Parameters:
-        param_grid (Dict): Dictionary containing parameter grid for hyperparameter tuning.
-        verbose (int): Verbosity level for search output.
-        search_type (str): Type of search ('grid' for GridSearchCV, 'random' for RandomizedSearchCV).
-        cv (int): Number of cross-validation folds.
-        scoring (str): Scoring metric for evaluation.
-        n_iter (int): Number of parameter settings sampled in RandomizedSearchCV.
-        log_scale (bool): Whether to use logarithmic scale for training set sizes.
-
-        Returns:
-        Tuple[Union[GridSearchCV, RandomizedSearchCV], Dict, np.ndarray, List[int], List[float], List[float]]:
-        Best model, parameters, predictions, sample sizes, train errors, and test errors.
-        """
-        train_errors = []
-        test_errors = []
-        sample_sizes = []  # List to store the number of samples for each training set
-
-        if log_scale:
-            train_sizes = np.logspace(np.log10(0.01), np.log10(1.0), num=10)  # Logarithmic space between 1% to 100% of data
-        else:
-            train_sizes = np.linspace(0.1, 1.0, 10)  # Regular linear space
-
-        for train_size in train_sizes:
-            # Subset the training data
-            n_samples = int(len(self.x_train) * train_size)
-            indices = np.random.choice(len(self.x_train), size=n_samples, replace=False)
-            x_train_subset = self.x_train[indices]
-            y_train_subset = self.y_train[indices]
-            #x_train_subset = self.x_train.sample(frac=train_size, random_state=42)
-            #y_train_subset = self.y_train.loc[x_train_subset.index]
-
-            # Perform grid search
-            if search_type == 'grid':
-                search = GridSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                      param_grid=param_grid, cv=cv, scoring=scoring, n_jobs=-1, verbose=verbose,
-                                      return_train_score=True)
-            elif search_type == 'random':
-                search = RandomizedSearchCV(estimator=RandomForestRegressor(n_estimators=200, random_state=42),
-                                            param_distributions=param_grid, n_iter=n_iter, cv=cv, scoring=scoring,
-                                            n_jobs=-1, verbose=verbose, return_train_score=True)
-            else:
-                raise ValueError("Invalid search_type. Choose 'grid' or 'random'.")
-
-            # Fit the search on the subset of training data
-            search.fit(x_train_subset, y_train_subset)
-
-            # For each combination of parameters, store the training and test errors
-            train_score = -search.best_score_  # Negative because scoring is 'neg_mean_squared_error'
-            test_score = mean_squared_error(self.y_test, search.best_estimator_.predict(self.x_test))
-
-            train_errors.append(train_score)
-            test_errors.append(test_score)
-            sample_sizes.append(len(x_train_subset))  # Number of samples used in this iteration
-
-        # Retrieve best model
-        best_model = search.best_estimator_
-        best_model.fit(self.x_train, self.y_train)
-        best_parameters = search.best_params_
-        self.y_pred = best_model.predict(self.x_test)
-
-        return best_model, best_parameters, self.y_pred, sample_sizes, train_errors, test_errors

@@ -21,11 +21,7 @@ This repository provides a comprehensive pipeline for forecasting flight delays,
 
 ## Project
 
-This project is part of an analysis and predictive modeling series focused on U.S. small airlines, leveraging various data sources. It aims to:
-    - Clean and preprocess flight data, integrating additional weather and passenger information.
-    - Explore and visualize flight data to uncover insights into delay patterns and key features.
-    - Develop and optimize machine learning models to forecast delays with high accuracy.
-    
+This project aims to develop a forecasting model for commercial flight delays. The objective is to analyze historical flight data and investigate how delays are influenced by factors such as flight routes, weather conditions, and passenger volumes. The expected outcome is to generate daily or weekly predictions of flight delays.
 
 ## Features
 
@@ -52,6 +48,7 @@ This project is part of an analysis and predictive modeling series focused on U.
 
 - python = 3.12
 - pandas = 2.2.3
+- numpy = 1.26.4
 - scipy = 1.14.1
 - matplotlib = 3.9.2
 - seaborn = 0.13.2
@@ -60,6 +57,9 @@ This project is part of an analysis and predictive modeling series focused on U.
 - scikit-learn = 1.5.2
 - pytest = 8.3.3
 - meteostat = 1.6.8
+- tensorflow = 2.18.0
+- pydantic = 2.0.0
+
 
 ## Installation
 
@@ -136,14 +136,14 @@ To tune hyperparameters and get the best model:
 
 ```python
 import pandas as pd
-from avstats.classes import DataCleaning
+from avstats.core.EDA import DataProcessing
 
 data = {
     'id': [1, 2, 2, 4, 5],
     'value': [10, 20, 20, None, 50]
 }
 df = pd.DataFrame(data)
-cleaner = DataCleaning(unique_column='id')
+cleaner = DataProcessing(unique_column='id')
 
 missing_values, duplicate_rows = cleaner.check_missing_and_duplicates(df)
 print(f"Missing values: {missing_values}")
