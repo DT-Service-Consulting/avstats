@@ -35,80 +35,97 @@ class MergeData:
         Returns:
             pd.DataFrame: Aggregated data grouped by route and the selected time period.
         """
-        if passenger_data is True:
+        if passenger_data:
             self.df['Month'] = pd.to_datetime(self.df['sdt']).dt.to_period('M')
             group_by_col = 'Month'
+            is_monthly = True
         else:
             self.df['Date'] = self.df['sdt'].dt.date
             group_by_col = 'Date'
+            is_monthly = False
 
-        # Group by route and month, aggregate necessary metrics
+        # Define weather aggregation logic with dynamic column names
+        weather_agg = {
+             # Departure weather
+            'tavg_dep': ('tavg_dep', 'mean' if is_monthly else 'first'),
+            'prcp_dep': ('prcp_dep', 'sum' if is_monthly else 'first'),
+            'snow_dep': ('snow_dep', 'mean' if is_monthly else 'first'),
+            'wdir_dep': ('wdir_dep', 'mean' if is_monthly else 'first'),
+            'wspd_dep': ('wspd_dep', 'mean' if is_monthly else 'first'),
+            'wpgt_dep': ('wpgt_dep', 'mean' if is_monthly else 'first'),
+            'pres_dep': ('pres_dep', 'mean' if is_monthly else 'first'),
+            'tsun_dep': ('tsun_dep', 'sum' if is_monthly else 'first'),
+
+            # Arrival weather
+            'tavg_arr': ('tavg_arr', 'mean' if is_monthly else 'first'),
+            'prcp_arr': ('prcp_arr', 'sum' if is_monthly else 'first'),
+            'snow_arr': ('snow_arr', 'mean' if is_monthly else 'first'),
+            'wdir_arr': ('wdir_arr', 'mean' if is_monthly else 'first'),
+            'wspd_arr': ('wspd_arr', 'mean' if is_monthly else 'first'),
+            'wpgt_arr': ('wpgt_arr', 'mean' if is_monthly else 'first'),
+            'pres_arr': ('pres_arr', 'mean' if is_monthly else 'first'),
+            'tsun_arr': ('tsun_arr', 'sum' if is_monthly else 'first'),
+        }
+
+        # Build the aggregation dictionary
+        agg_dict = {
+            'total_flights': ('uuid', 'count'),
+
+            # Type counts
+            'departures': ('type', lambda x: np.sum(x == 'DEPARTURE')),
+            'arrivals': ('type', lambda x: np.sum(x == 'ARRIVAL')),
+
+            # Status counts
+            'landed': ('status', lambda x: np.sum(x == 'LANDED')),
+            'active': ('status', lambda x: np.sum(x == 'ACTIVE')),
+            'scheduled': ('status', lambda x: np.sum(x == 'SCHEDULED')),
+
+            # Delays and on-time flights
+            'total_dep_delay': ('dep_delay', 'sum'),
+            'total_dep_delay_15': ('dep_delay_15', 'sum'),
+            'total_on_time_15': ('on_time_15', 'sum'),
+
+            # Delay categories
+            'short_delay': ('dep_delay_cat', lambda x: np.sum(x == 'Short')),
+            'medium_delay': ('dep_delay_cat', lambda x: np.sum(x == 'Medium')),
+            'long_delay': ('dep_delay_cat', lambda x: np.sum(x == 'Long')),
+
+            # Calculated metrics
+            'total_calc_sft': ('calc_sft', 'sum'),
+            'total_calc_aft': ('calc_aft', 'sum'),
+            'total_flight_distance_km': ('calc_flight_distance_km', 'sum'),
+
+            # Flight categories
+            'commercial': ('flight_cat', lambda x: np.sum(x == 'Commercial')),
+            'private': ('flight_cat', lambda x: np.sum(x == 'Private')),
+            'cargo': ('flight_cat', lambda x: np.sum(x == 'Cargo')),
+
+            # Departure time windows
+            'morning_dep': ('dep_time_window', lambda x: np.sum(x == 'Morning')),
+            'afternoon_dep': ('dep_time_window', lambda x: np.sum(x == 'Afternoon')),
+            'evening_dep': ('dep_time_window', lambda x: np.sum(x == 'Evening')),
+
+            # Arrival time windows
+            'morning_arr': ('arr_time_window', lambda x: np.sum(x == 'Morning')),
+            'afternoon_arr': ('arr_time_window', lambda x: np.sum(x == 'Afternoon')),
+            'evening_arr': ('arr_time_window', lambda x: np.sum(x == 'Evening')),
+        }
+
+        # Update the aggregation dictionary with weather logic dynamically
+        if is_monthly:
+            # Rename columns for monthly aggregation
+            weather_agg = {
+                f"avg_{key}": (key, func) for key, (key, func) in weather_agg.items()
+            }
+        agg_dict.update(weather_agg)
+
+        # Group and aggregate
         self.df_grouped = (
             self.df.groupby(['route_iata_code', group_by_col])
-            .agg(
-                total_flights=('uuid', 'count'),
-
-                # Type counts
-                departures=('type', lambda x: np.sum(x == 'DEPARTURE')),
-                arrivals=('type', lambda x: np.sum(x == 'ARRIVAL')),
-
-                # Status counts
-                landed=('status', lambda x: np.sum(x == 'LANDED')),
-                active=('status', lambda x: np.sum(x == 'ACTIVE')),
-                scheduled=('status', lambda x: np.sum(x == 'SCHEDULED')),
-
-                # Delays and on-time flights
-                total_dep_delay=('dep_delay', 'sum'),
-                total_dep_delay_15=('dep_delay_15', 'sum'),
-                total_on_time_15=('on_time_15', 'sum'),
-
-                # Delay categories
-                short_delay=('dep_delay_cat', lambda x: np.sum(x == 'Short')),
-                medium_delay=('dep_delay_cat', lambda x: np.sum(x == 'Medium')),
-                long_delay=('dep_delay_cat', lambda x: np.sum(x == 'Long')),
-
-                # Calculated metrics
-                total_calc_sft=('calc_sft', 'sum'),
-                total_calc_aft=('calc_aft', 'sum'),
-                total_flight_distance_km=('calc_flight_distance_km', 'sum'),
-
-                # Flight categories
-                commercial=('flight_cat', lambda x: np.sum(x == 'Commercial')),
-                private=('flight_cat', lambda x: np.sum(x == 'Private')),
-                cargo=('flight_cat', lambda x: np.sum(x == 'Cargo')),
-
-                # Departure time windows
-                morning_dep=('dep_time_window', lambda x: np.sum(x == 'Morning')),
-                afternoon_dep=('dep_time_window', lambda x: np.sum(x == 'Afternoon')),
-                evening_dep=('dep_time_window', lambda x: np.sum(x == 'Evening')),
-
-                # Arrival time windows
-                morning_arr=('arr_time_window', lambda x: np.sum(x == 'Morning')),
-                afternoon_arr=('arr_time_window', lambda x: np.sum(x == 'Afternoon')),
-                evening_arr=('arr_time_window', lambda x: np.sum(x == 'Evening')),
-
-                # Departure weather
-                avg_tavg_dep=('tavg_dep', 'mean'),
-                total_prcp_dep=('prcp_dep', 'sum'),
-                avg_snow_dep=('snow_dep', 'mean'),
-                avg_wdir_dep=('wdir_dep', 'mean'),
-                avg_wspd_dep=('wspd_dep', 'mean'),
-                avg_wpgt_dep=('wpgt_dep', 'mean'),
-                avg_pres_dep=('pres_dep', 'mean'),
-                total_tsun_dep=('tsun_dep', 'sum'),
-
-                # Arrival weather
-                avg_tavg_arr=('tavg_arr', 'mean'),
-                total_prcp_arr=('prcp_arr', 'sum'),
-                avg_snow_arr=('snow_arr', 'mean'),
-                avg_wdir_arr=('wdir_arr', 'mean'),
-                avg_wspd_arr=('wspd_arr', 'mean'),
-                avg_wpgt_arr=('wpgt_arr', 'mean'),
-                avg_pres_arr=('pres_arr', 'mean'),
-                total_tsun_arr=('tsun_arr', 'sum'),
-            )
+            .agg(**agg_dict)
             .reset_index()
         )
+
         return self.df_grouped
 
     def aggregate_passengers(self, df_passengers: pd.DataFrame) -> pd.DataFrame:
