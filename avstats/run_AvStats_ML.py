@@ -11,9 +11,9 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 try:
     from core.config import PARAM_GRID_RF
-    from core.ML.OneHotEncoding import OneHotEncoding
-    from core.ML.DataPreparation import DataPreparation
-    from core.ML.Multicollinearity import Multicollinearity
+    from avstats.core.EDA.OneHotEncoding import OneHotEncoding
+    from avstats.core.EDA.DataScaling import DataPreparation
+    from avstats.core.EDA.Multicollinearity import Multicollinearity
     from core.ML.ModelTraining import ModelTraining
     from core.ML.TimeSeriesAnalysis import TimeSeriesAnalysis
     from core.ML.NeuralNetworks import NeuralNetworks

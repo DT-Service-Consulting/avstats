@@ -6,9 +6,9 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from avstats.core.ML.ModelTraining import ModelTraining
 from avstats.core.ML.ModelEvaluation import cross_validate, evaluate_model, plot_metrics
-from avstats.core.ML.OneHotEncoding import OneHotEncoding
-from avstats.core.ML.DataPreparation import DataPreparation
-from avstats.core.ML.Multicollinearity import Multicollinearity
+from avstats.core.EDA.OneHotEncoding import OneHotEncoding
+from avstats.core.EDA.DataScaling import DataPreparation
+from avstats.core.EDA.Multicollinearity import Multicollinearity
 
 # Load configurations
 with open("config.yaml", "r") as f:

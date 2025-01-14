@@ -46,7 +46,9 @@ class DataProcessing:
         self.df['calc_sft'] = self.df['calc_sft'].fillna((self.df['sat'] - self.df['sdt']) / pd.Timedelta(minutes=1))
         self.df['calc_aft'] = self.df['calc_aft'].fillna((self.df['aat'] - self.df['adt']) / pd.Timedelta(minutes=1))
         self.df.fillna({'airline_iata_code': 'NONE', 'flight_iata_number': 'NONE'}, inplace=True)
+        return self.df
 
+    def feature_engineering(self) -> pd.DataFrame:
         # Feature engineering
         self.df['dep_delay_15'] = (self.df['dep_delay'] > 15).astype(int)
         self.df['dep_delay_cat'] = pd.cut(
@@ -62,7 +64,6 @@ class DataProcessing:
             lambda x: NewFeatures.get_time_window(x.hour) if pd.notnull(x) else None)
 
         self.df['on_time_15'] = (self.df['dep_delay'] < 15).astype(int)
-
         return self.df
 
     def check_missing_and_duplicates(self, df: pd.DataFrame) -> dict:
