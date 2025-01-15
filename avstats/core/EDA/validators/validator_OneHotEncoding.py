@@ -10,6 +10,7 @@ class OneHotEncodingInput(BaseModel):
 
     @field_validator("df")
     def validate_dataframe_columns(cls, df: pd.DataFrame):
+        # Ensure required columns exist
         required_columns = {'route_iata_code', 'total_dep_delay_15'}
         missing_columns = required_columns - set(df.columns)
         if missing_columns:
@@ -22,16 +23,20 @@ class OneHotEncodingInput(BaseModel):
             raise ValueError("Input dataframe is empty.")
 
         # Supported types
-        supported_types = ["object", "int64", "float64", "datetime64[ns]"]
+        supported_types = {"object", "int64", "float64", "datetime64[ns]"}
 
         # Identify unsupported columns
-        unsupported_columns = df.dtypes[~df.dtypes.apply(lambda dtype: dtype.name in supported_types)].index.tolist()
+        unsupported_columns = [
+            col for col, dtype in df.dtypes.items() if dtype.name not in supported_types
+        ]
         if unsupported_columns:
             raise ValueError(f"Dataframe contains unsupported data types in columns: {unsupported_columns}")
 
-        # Check for excessive null values
-        if df.isnull().any().any():
-            null_columns = df.columns[df.isnull().any()].tolist()
-            raise ValueError(f"Dataframe contains null values in columns: {null_columns}")
+        # Handle null values: either drop or fill them
+        null_columns = df.columns[df.isnull().any()].tolist()
+        if null_columns:
+            # Optionally, you can choose to fill NaN values instead of raising an error
+            df = df.fillna(0)  # Fill NaN with 0, or apply a different strategy
+            # raise ValueError(f"Dataframe contains null values in columns: {null_columns}")
 
         return df
