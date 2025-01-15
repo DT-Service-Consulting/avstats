@@ -1,6 +1,6 @@
 # core/ML/OneHotEncoding.py
 import pandas as pd
-from typing import Optional, Any
+from typing import Any, Union
 from avstats.core.EDA.validators.validator_OneHotEncoding import OneHotEncodingInput
 
 
@@ -17,17 +17,16 @@ class OneHotEncoding:
 
         self.df = validated_input.df
         self.df_encoded = None
+        self.df['total_dep_delay_15'] = self.df['total_dep_delay_15'].astype('int64')
+        self.df['total_on_time_15'] = self.df['total_on_time_15'].astype('int64')
 
-    def encode_routes(self) -> Optional[tuple[pd.DataFrame, pd.DataFrame, list[str]]]:
+    def encode_routes(self) -> Union[pd.DataFrame, None]:
         """
         Encodes the specified route column, modifies the dummy variables,
         and creates a subset of the dataframe for correlation analysis.
 
         Returns:
-        tuple:
-            pd.DataFrame: The full dataframe with encoded route columns.
-            pd.DataFrame: A subset of the dataframe for correlation analysis.
-            list[str]: A list of route column names.
+            Union[pd.DataFrame, None]: The full dataframe with encoded route columns.
 
         Raises:
         KeyError: If required columns are not found in the dataframe.
@@ -44,17 +43,10 @@ class OneHotEncoding:
             # Remove leading underscores from column names
             df_encoded.columns = df_encoded.columns.str.lstrip('_')
 
-            # Select the route code columns and the target column
-            route_columns = [col for col in df_encoded.columns if '-' in col]
-            corr_columns = ['total_dep_delay_15'] + route_columns
-
-            # Create a subset of the dataframe for correlation
-            corr_df = df_encoded[corr_columns]
-
             # Store encoded dataframe for further processing
             self.df_encoded = df_encoded
 
-            return self.df_encoded, corr_df, route_columns
+            return self.df_encoded
 
         except KeyError as e:
             print(f"Encoding error: {e}")
