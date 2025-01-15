@@ -1,10 +1,20 @@
 # DataLoader.py
 import yaml
 import json
+import os
 import pandas as pd
 from pathlib import Path
 from typing import Tuple, Optional, Dict
 
+
+def save_dataframe(df, filename):
+    # Define the path to save the file
+    data_folder = os.path.join("..", "data")  # Adjust the path if needed
+    file_path = os.path.join(data_folder, f"{filename}.csv")
+
+    # Save the DataFrame as a CSV file
+    df.to_csv(file_path, index=False)
+    print(f"DataFrame saved to {file_path}")
 
 class DataLoader:
     def __init__(self, config_path: str = 'config.yaml') -> None:
