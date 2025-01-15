@@ -22,11 +22,7 @@ class FlightPerformance:
         """
         total_flights = len(self.df)
         if total_flights == 0:
-            return {
-                "Delayed Flights (%)": 0,
-                "On-Time Flights (%)": 0,
-                "Missing Status (%)": 0,
-            }
+            return {"Delayed Flights (%)": 0, "On-Time Flights (%)": 0, "Missing Status (%)": 0,}
 
         delayed = self.df['dep_delay_15'].sum()
         on_time = self.df['on_time_15'].sum()
