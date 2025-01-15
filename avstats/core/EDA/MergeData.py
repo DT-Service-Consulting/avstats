@@ -115,7 +115,8 @@ class MergeData:
         if is_monthly:
             # Rename columns for monthly aggregation
             weather_agg = {
-                f"avg_{key}": (key, func) for key, (key, func) in weather_agg.items()
+                (f"avg_{key}" if func == 'mean' else f"total_{key}"): (key, func)
+                for key, (key, func) in weather_agg.items()
             }
         agg_dict.update(weather_agg)
 
