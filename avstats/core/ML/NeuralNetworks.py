@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from typing import Tuple
+from avstats.core.ML.validators.validator_NeuralNetworks import NeuralNetworksInput
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
 
@@ -16,7 +17,9 @@ class NeuralNetworks:
         Args:
             df (pd.DataFrame): The dataframe containing the time series data.
         """
-        self.df = df
+        # Validate input using the Pydantic model
+        validated_input = NeuralNetworksInput(df=df)
+        self.df = validated_input.df
 
     @staticmethod
     def create_dataset(data: np.ndarray, lookback: int = 1) -> Tuple[np.ndarray, np.ndarray]:

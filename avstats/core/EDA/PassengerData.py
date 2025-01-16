@@ -58,6 +58,9 @@ class PassengerData:
         # Apply the function to the 'AIRP_PR' column and create 'Route_Code' column
         self.df['route_code'] = self.df['AIRP_PR'].apply(self.convert_to_route_code)
 
+        # Drop rows where 'route_code' is None or empty
+        self.df = self.df[self.df['route_code'].notna() & (self.df['route_code'] != '-')]
+
         # Insert 'Route_Code' column right after 'AIRP_PR'
         route_code_col = self.df.pop('route_code')
         self.df.insert(self.df.columns.get_loc('AIRP_PR') + 1, 'route_code', route_code_col)
