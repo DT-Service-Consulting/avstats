@@ -83,21 +83,39 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self, title) -> None:
+    def plot_model(self, title, evaluation_metrics=None) -> None:
         """
-        Plots the model's predicted values against the actual values using a scatter plot.
+        Plots actual vs predicted values with a metrics table, adding space between lines.
+
+        Parameters:
+        - y_test (array-like): Actual values.
+        - y_pred (array-like): Predicted values.
+        - metrics (dict): Evaluation metrics (e.g., MAE, RMSE, MAPE).
+        - model_name (str): Name of the model for the plot title.
         """
         if self.y_pred is None:
             raise ValueError("You need to call predict() before plotting.")
-        sns.set_theme(style="whitegrid")
 
-        plt.figure(figsize=(10, 6))
-        plt.scatter(self.y_test, self.y_pred, alpha=0.7)
-        plt.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2)  # Diagonal line
-        plt.title(f"Monthly Delays - {title}")
-        plt.xlabel('Actual Values (min.)')
-        plt.ylabel('Predicted Values (min.)')
+        sns.set_theme(style="whitegrid")
+        plt.figure(figsize=(12, 6))
+        plt.scatter(self.y_test, self.y_pred, alpha=0.7, label='Predictions')
+        plt.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2,
+                 label='Perfect Prediction')
+
+        # Add plot details
+        plt.title(f"{title} - Actual vs Predicted", pad=20)
+        plt.xlabel("Actual Values - Monthly (min.)")
+        plt.ylabel("Predicted Values - Monthly (min.)")
+        plt.legend(loc="upper left", title="Legend")
         plt.xlim(self.y_test.min(), self.y_test.max())
         plt.ylim(self.y_test.min(), self.y_test.max())
-        plt.grid()
+
+        # Add the metrics box
+        metrics_text = "\n\n".join([f"{key}: {value}" for key, value in evaluation_metrics.items()])
+        props = dict(boxstyle="round,pad=0.6", edgecolor="gray", facecolor="whitesmoke")
+        plt.text(
+            1.1, 0.5, metrics_text, transform=plt.gca().transAxes, fontsize=10,
+            verticalalignment='center', horizontalalignment='left', bbox=props
+        )
+        plt.tight_layout(rect=(0, 0, 0.8, 1))
         plt.show()
