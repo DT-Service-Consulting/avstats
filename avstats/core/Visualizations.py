@@ -2,6 +2,7 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+from math import pi
 
 
 def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f}", color='white'):
@@ -22,6 +23,44 @@ def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f
         for i, v in enumerate(data):
             ax.text(v + offset, i, label_format.format(v), color=color, ha='right', va='center', fontsize=10)
 
+def plot_radar_chart(df):
+    """
+    Creates a radar chart for characteristics of delayed flights.
+
+    Parameters:
+    df (pd.DataFrame): Flight dataset with required columns.
+    """
+    # Extract day of the week and month
+    df['DayOfWeek'] = pd.to_datetime(df['sdt']).dt.day_name()
+    df['Month'] = pd.to_datetime(df['sdt']).dt.to_period('M')
+
+    # Aggregate delays
+    radar_data = {
+        'Routes': df.groupby('route_iata_code')['dep_delay'].mean().head(10).mean(),
+        'Distance': df.groupby('calc_flight_distance_km')['dep_delay'].mean().mean(),
+        'Flight Type': df.groupby('flight_cat')['dep_delay'].mean().mean(),
+        'Time of Day': df.groupby('dep_time_window')['dep_delay'].mean().mean(),
+        'Day of Week': df.groupby('DayOfWeek')['dep_delay'].mean().mean(),
+        'Month': df.groupby('Month')['dep_delay'].mean().mean(),
+    }
+
+    labels = list(radar_data.keys())
+    values = list(radar_data.values())
+    values += values[:1]  # Close the radar chart
+
+    # Plot radar chart
+    angles = [n / float(len(labels)) * 2 * pi for n in range(len(labels))]
+    angles += angles[:1]
+
+    plt.figure(figsize=(4, 4))
+    ax = plt.subplot(111, polar=True)
+    plt.xticks(angles[:-1], labels, color='grey', size=9)
+    ax.plot(angles, values, linewidth=2, linestyle='solid', label='Average Delay', color='purple')
+    ax.fill(angles, values, alpha=0.4, color='purple')
+    ax.yaxis.set_tick_params(labelsize=8)
+    plt.title('Characteristics of Delayed Flights', size=12, pad=40)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    plt.show()
 
 def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_delay', top_n=10):
     """
@@ -48,7 +87,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
     ax1 = plt.subplot(1, 2, 1)
-    sns.barplot(x=common_routes.values, y=common_routes.index, palette='Blues_d', ax=ax1)
+    sns.barplot(x=common_routes.values, y=common_routes.index, palette='Greens_d', ax=ax1)
     plt.title('Top 10 Most Common Routes')
     plt.xlabel('Total Flights')
     plt.ylabel('')
@@ -57,7 +96,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
 
     # Subplot 2: Routes with Highest Delays
     ax2 = plt.subplot(1, 2, 2)
-    sns.barplot(data=average_delay_sorted.head(top_n), x='average_delay', y=route_column, palette='Reds_d', ax=ax2)
+    sns.barplot(data=average_delay_sorted.head(top_n), x='average_delay', y=route_column, palette='Oranges_d', ax=ax2)
     plt.title('Top 10 Routes with Highest Delays')
     plt.xlabel('Average Delay (min.)')
     plt.ylabel('')
@@ -69,7 +108,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     top_routes = df[route_column].value_counts().nlargest(top_n).index
     filtered_df = df[df[route_column].isin(top_routes)]
     plt.figure(figsize=(12, 4))
-    sns.boxplot(data=filtered_df, x=route_column, y=delay_column, palette='Reds_d')
+    sns.boxplot(data=filtered_df, x=route_column, y=delay_column, palette='Purples')
     plt.title('Delay Distribution by Top 10 Routes')
     plt.xlabel('')
     plt.ylabel('Delay (min.)')
@@ -157,44 +196,62 @@ def plot_time_window(df, time_window_column='dep_time_window', delay_column='dep
     plt.tight_layout()
     plt.show()
 
-def plot_weekly_and_monthly(df, day_column='sdt', delay_column='dep_delay', palette=None):
+def plot_weekly_and_monthly_comparison(df, day_column='sdt', delay_column='dep_delay', palette=None):
     """
-    Plot combined analysis for delays by day of the week and month.
+    Plot combined analysis for delays and flight counts by day of the week and month.
 
     Parameters:
     df (pd.DataFrame): The flight data DataFrame.
     day_column (str): The column containing datetime information.
     delay_column (str): The column containing delay values.
+    palette (str): Color palette for the bar plots.
     """
-    # Create delays by day of the week
-    df['DayOfWeek'] = pd.to_datetime(df[day_column]).dt.day_name()
+    # Compute average delays and total flights by day of the week
     weekday_delays = df.groupby('DayOfWeek')[delay_column].mean().reindex(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+    weekday_flight_counts = df['DayOfWeek'].value_counts().reindex(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
 
-    # Create delays by month
-    df['Month'] = pd.to_datetime(df[day_column]).dt.to_period('M')
-    monthly_delays = df.groupby('Month')[delay_column].mean()
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    # Compute average delays and total flights by month
+    monthly_delays = df.groupby('Month')[delay_column].mean().sort_index()
+    monthly_flight_counts = df['Month'].value_counts().sort_index()
 
-    # Plot 1: Delays by Day of the Week
-    sns.barplot(x=weekday_delays.index, y=weekday_delays.values, palette=palette, ax=axes[0])
-    axes[0].set_title('Average Delays by Day of the Week')
-    axes[0].set_xlabel('')
-    axes[0].set_ylabel('Average Delay (min.)')
+    # Create figure with 4 subplots
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+    # Plot 1: Average delays by day of the week
+    sns.barplot(x=weekday_delays.index, y=weekday_delays.values, palette=palette, ax=axes[0, 0])
+    axes[0, 0].set_title('Average Delays by Day of the Week')
+    axes[0, 0].set_ylabel('Average Delay (min.)')
     for index, value in enumerate(weekday_delays.values):
-        axes[0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=10)
-    axes[0].set_ylim(0, 40)
+        axes[0, 0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=10)
+    axes[0, 0].set_ylim(0, 40)
 
-    # Plot 2: Delays by Month
-    sns.lineplot(x=monthly_delays.index.astype(str), y=monthly_delays.values, marker='o', ax=axes[1])
-    axes[1].set_title('Average Delays by Month')
-    axes[1].set_xlabel('')
-    axes[1].set_ylabel('Average Delay (min.)')
-    axes[1].set_xticklabels(monthly_delays.index.astype(str), rotation=45)
-    axes[1].set_ylim(0, 60)
+    # Plot 2: Total flights by day of the week
+    sns.barplot(x=weekday_flight_counts.index, y=weekday_flight_counts.values, palette=palette, ax=axes[0, 1])
+    axes[0, 1].set_title('Total Flights by Day of the Week')
+    axes[0, 1].set_ylabel('Total Flights')
+    for index, value in enumerate(weekday_flight_counts.values):
+        axes[0, 1].text(index, value - 3500, f"{value:,}", color='white', ha='center', fontsize=10)
+    axes[0, 1].set_ylim(0, weekday_flight_counts.max() + 20000)
+
+    # Plot 3: Average delays by month
+    sns.lineplot(x=monthly_delays.index.astype(str), y=monthly_delays.values, marker='o', ax=axes[1, 0])
+    axes[1, 0].set_title('Average Delays by Month')
+    axes[1, 0].set_ylabel('Average Delay (min.)')
+    axes[1, 0].set_xticklabels(monthly_delays.index.astype(str), rotation=45)
+    axes[1, 0].set_ylim(0, 50)
     for x, y in zip(monthly_delays.index.astype(str), monthly_delays.values):
-        axes[1].text(x, y + 2, f"{y:.2f}", color='black', ha='center', fontsize=10)
+        axes[1, 0].text(x, y + 1.5, f"{y:.2f}", color='black', ha='center', fontsize=10)
 
-    plt.subplots_adjust(wspace=0.4)
+    # Plot 4: Total flights by month
+    sns.lineplot(x=monthly_flight_counts.index.astype(str), y=monthly_flight_counts.values, marker='o', ax=axes[1, 1])
+    axes[1, 1].set_title('Total Flights by Month')
+    axes[1, 1].set_ylabel('Total Flights')
+    axes[1, 1].set_xticklabels(monthly_flight_counts.index.astype(str), rotation=45)
+    axes[1, 1].set_ylim(0, 55000)
+    for x, y in zip(monthly_flight_counts.index.astype(str), monthly_flight_counts.values):
+        axes[1, 1].text(x, y + 2000, f"{y:,}", color='black', ha='center', fontsize=10)
+
+    plt.subplots_adjust(wspace=0.3, hspace=0.4)
     plt.tight_layout()
     plt.show()
 
@@ -210,7 +267,7 @@ def plot_overall_performance(performance_metrics, palette="Blues_d"):
     performance_labels = list(performance_metrics.keys())
     performance_values = list(performance_metrics.values())
 
-    plt.figure(figsize=(10, 3))
+    plt.figure(figsize=(16, 3))
     ax = sns.barplot(x=performance_values, y=performance_labels, palette=palette)
     plt.xlabel("Percentage (%)")
     plt.title("Overall Flight Performance")

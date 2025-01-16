@@ -20,6 +20,8 @@ meteostat = "^1.6.8"
 tensorflow = "^2.18.0"
 airportsdata = "^20241001"
 pydantic = "^2.0.0"
+openpyxl = "^3.1.5"
+plotly = "^5.24.1"
 
 
 [build-system]
