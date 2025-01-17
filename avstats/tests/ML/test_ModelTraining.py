@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+from unittest.mock import patch
 from avstats.core.ML.ModelTraining import ModelTraining
 
 
@@ -64,7 +65,8 @@ def test_train_random_forest(sample_data):
     assert len(y_pred) == len(y_test), "Predictions length should match test set length"
 
 
-def test_plot_model(sample_data):
+@patch("avstats.core.ML.ModelTraining.metrics_box")
+def test_plot_model(mock_metrics_box, sample_data):
     """Test the model's plotting functionality with metrics."""
     x_train, y_train, x_test, y_test = sample_data
     model_trainer = ModelTraining(x_train, y_train, x_test, y_test)
@@ -79,15 +81,19 @@ def test_plot_model(sample_data):
         "R^2": 0.789
     }
 
+    # Mock the metrics_box function to ensure it is called correctly
+    mock_metrics_box.return_value = None
+
     # Assign predictions and actual values to the instance
     model_trainer.y_test = y_test
     model_trainer.y_pred = y_pred
 
-    # Ensure no exceptions are raised during plotting
+    # Ensure no exceptions are raised during plotting and metrics_box is called
     try:
         model_trainer.plot_model(
             title="Random Forest: Predicted vs Actual Values",
             evaluation_metrics=evaluation_metrics
         )
+        mock_metrics_box.assert_called_once_with(evaluation_metrics)
     except Exception as e:
         pytest.fail(f"Plotting failed with exception: {e}")

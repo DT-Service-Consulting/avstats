@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from typing import Tuple
+from typing import Tuple, Any
+from avstats.core.ML.ModelEvaluation import *
 from avstats.core.ML.validators.validator_NeuralNetworks import NeuralNetworksInput
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
@@ -39,7 +40,7 @@ class NeuralNetworks:
             y_nn.append(data[i + lookback, 0])
         return np.array(x_nn), np.array(y_nn)
 
-    def neural_networks(self) -> Tuple[np.ndarray, np.ndarray]:
+    def neural_networks(self) -> tuple[Any, Any, Any, Any]:
         """
         Build and train a neural network model (LSTM) for time series prediction.
 
@@ -49,7 +50,6 @@ class NeuralNetworks:
         values = self.df['total_dep_delay'].values  # Replace with your column name
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled_values = scaler.fit_transform(values.reshape(-1, 1))
-
         look_back = 10  # Number of past days used for prediction
         x, y = self.create_dataset(scaled_values, look_back)
 
@@ -62,25 +62,28 @@ class NeuralNetworks:
         y_train, y_test = y[:train_size], y[train_size:]
 
         # Build the LSTM model with an explicit Input layer
-        model = Sequential([
-            Input(shape=(look_back, 1)),  # Define the input shape explicitly
-            LSTM(50),
-            Dropout(0.2),
-            Dense(1)  # Single output for regression
-        ])
-
+        model = Sequential([Input(shape=(look_back, 1)), LSTM(50), Dropout(0.2), Dense(1)])
         model.compile(optimizer='adam', loss='mse')
         model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1)
 
         # Predictions
         predicted = model.predict(x_test)
-        nn_predictions = scaler.inverse_transform(predicted)  # Inverse scaling
+        predictions = scaler.inverse_transform(predicted)  # Inverse scaling
         y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
 
+        # Evaluation
+        residuals = y_test - predictions
+        metrics = evaluate_model(y_test, predictions, residuals)
+
         # Plot actual vs predicted
+        plt.figure(figsize=(12, 6))
         plt.plot(y_test, label="Actual")
-        plt.plot(nn_predictions, label="Predicted")
+        plt.plot(predictions, label="Predicted")
+        plt.title(f"Neural Networks - Actual vs Predicted", pad=20)
+        plt.xlabel("Dataframe Index (Flights)")
+        plt.ylabel("Delay (min.)")
+        metrics_box(metrics)
         plt.legend()
         plt.show()
 
-        return y_test, nn_predictions
+        return model, y_test, predictions, metrics

@@ -1,11 +1,9 @@
 # core/ML/ModelTraining.py
-import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
-import statsmodels.api as sm
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from typing import Tuple
+from avstats.core.ML.ModelEvaluation import *
 from statsmodels.regression.linear_model import RegressionResults
 from avstats.core.ML.validators.validator_ModelTraining import ModelTrainingInput
 
@@ -83,7 +81,7 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self, title, evaluation_metrics=None) -> None:
+    def plot_model(self, title, evaluation_metrics) -> None:
         """
         Plots actual vs predicted values with a metrics table, adding space between lines.
 
@@ -109,13 +107,5 @@ class ModelTraining:
         plt.legend(loc="upper left", title="Legend")
         plt.xlim(self.y_test.min(), self.y_test.max())
         plt.ylim(self.y_test.min(), self.y_test.max())
-
-        # Add the metrics box
-        metrics_text = "\n\n".join([f"{key}: {value}" for key, value in evaluation_metrics.items()])
-        props = dict(boxstyle="round,pad=0.6", edgecolor="gray", facecolor="whitesmoke")
-        plt.text(
-            1.1, 0.5, metrics_text, transform=plt.gca().transAxes, fontsize=10,
-            verticalalignment='center', horizontalalignment='left', bbox=props
-        )
-        plt.tight_layout(rect=(0, 0, 0.8, 1))
+        metrics_box(evaluation_metrics)
         plt.show()

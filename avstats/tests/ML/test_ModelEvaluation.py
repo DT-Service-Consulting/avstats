@@ -13,13 +13,24 @@ def sample_data():
     return x, y
 
 
+def prepare_ols_predictions(x, y):
+    """
+    Helper function to prepare predictions and residuals using an OLS model.
+    """
+    x_np = x.values
+    y_np = y.values
+    ols_model = sm.OLS(y_np, sm.add_constant(x_np)).fit()
+    predictions = ols_model.predict(sm.add_constant(x_np))
+    residuals = y_np - predictions
+    return x_np, y_np, predictions, residuals
+
+
 def test_cross_validate(sample_data):
     """
     Test the cross-validate function.
     """
     x_train, y_train = sample_data
-    x_train_np = x_train.values
-    y_train_np = y_train.values
+    x_train_np, y_train_np, _, _ = prepare_ols_predictions(x_train, y_train)
 
     cv_scores = cross_validate(x_train_np, y_train_np, cv=5)
     assert len(cv_scores) == 5
@@ -37,15 +48,7 @@ def test_evaluate_model(sample_data):
     Test the evaluate_model function.
     """
     x, y = sample_data
-
-    # Convert to numpy arrays for compatibility with the updated function
-    x_np = x.values
-    y_np = y.values
-
-    # Simulate predictions using a simple OLS model
-    ols_model = sm.OLS(y_np, sm.add_constant(x_np)).fit()
-    predictions = ols_model.predict(sm.add_constant(x_np))
-    residuals = y_np - predictions
+    _, y_np, predictions, residuals = prepare_ols_predictions(x, y)
 
     # Evaluate model with residuals
     metrics = evaluate_model(y_np, predictions, residuals)
@@ -68,20 +71,30 @@ def test_evaluate_model(sample_data):
     assert metrics_no_residuals["MAPE (%)"] is None
 
 
+def test_metrics_box():
+    """
+    Test the metrics_box function.
+    """
+    evaluation_metrics = {
+        "MAE (min.)": 2.5,
+        "RMSE (min.)": 3.0,
+        "MAPE (%)": 10.5
+    }
+
+    try:
+        plt.figure()  # Create a new figure
+        metrics_box(evaluation_metrics)  # Ensure the function runs without errors
+        plt.close()  # Close the plot after the test
+    except Exception as e:
+        pytest.fail(f"metrics_box function raised an exception: {e}")
+
+
 def test_plot_combined(sample_data):
     """
     Test the plot_combined function.
     """
     x, y = sample_data
-
-    # Convert to numpy arrays for compatibility with the updated function
-    x_np = x.values
-    y_np = y.values
-
-    # Simulate predictions using a simple OLS model
-    ols_model = sm.OLS(y_np, sm.add_constant(x_np)).fit()
-    predictions = ols_model.predict(sm.add_constant(x_np))
-    residuals = y_np - predictions
+    _, y_np, predictions, residuals = prepare_ols_predictions(x, y)
 
     # Ensure the function executes without error
     try:
