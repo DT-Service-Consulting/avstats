@@ -1,89 +1,84 @@
 # core/ML/NeuralNetworks.py
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from typing import Tuple, Any
-from avstats.core.ML.ModelEvaluation import *
-from avstats.core.ML.validators.validator_NeuralNetworks import NeuralNetworksInput
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.preprocessing import MinMaxScaler
+from typing import Tuple
+from avstats.core.ML.ModelEvaluation import *
+from avstats.core.ML.ModelEvaluation import evaluate_model, metrics_box
 
 
 class NeuralNetworks:
-    def __init__(self, df: pd.DataFrame):
-        """
-        Initialize the NeuralNetworks class.
-
-        Args:
-            df (pd.DataFrame): The dataframe containing the time series data.
-        """
-        # Validate input using the Pydantic model
-        validated_input = NeuralNetworksInput(df=df)
-        self.df = validated_input.df
+    def __init__(self, df: pd.DataFrame, column: str, look_back=10):
+        self.df = df
+        self.column = column
+        self.look_back = look_back
 
     @staticmethod
     def create_dataset(data: np.ndarray, lookback: int = 1) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Create datasets for time series modeling using sliding windows.
-
-        Args:
-            data (np.ndarray): Scaled time series data.
-            lookback (int): Number of past observations to use for predicting the next value.
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: Feature matrix (x) and target vector (y).
-        """
         x_nn, y_nn = [], []
         for i in range(len(data) - lookback - 1):
             x_nn.append(data[i:(i + lookback), 0])
             y_nn.append(data[i + lookback, 0])
         return np.array(x_nn), np.array(y_nn)
 
-    def neural_networks(self) -> tuple[Any, Any, Any, Any]:
-        """
-        Build and train a neural network model (LSTM) for time series prediction.
+    @staticmethod
+    def build_lstm_model(input_shape):
+        model = Sequential([Input(shape=input_shape), LSTM(50), Dropout(0.2), Dense(1)])
+        model.compile(optimizer='adam', loss='mse')
+        return model
 
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: Actual values (y_test) and predicted values (nn_predictions).
-        """
-        values = self.df['total_dep_delay'].values  # Replace with your column name
+    def neural_networks(self) -> tuple:
+        # Scale data
+        values = self.df[self.column].values
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled_values = scaler.fit_transform(values.reshape(-1, 1))
-        look_back = 10  # Number of past days used for prediction
-        x, y = self.create_dataset(scaled_values, look_back)
 
-        # Reshape for LSTM input
+        # Create dataset
+        x, y = self.create_dataset(scaled_values, self.look_back)
         x = np.reshape(x, (x.shape[0], x.shape[1], 1))
 
-        # Train-test split
+        # Split data
         train_size = int(len(x) * 0.8)
         x_train, x_test = x[:train_size], x[train_size:]
         y_train, y_test = y[:train_size], y[train_size:]
 
-        # Build the LSTM model with an explicit Input layer
-        model = Sequential([Input(shape=(look_back, 1)), LSTM(50), Dropout(0.2), Dense(1)])
-        model.compile(optimizer='adam', loss='mse')
-        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1)
+        # Build and train model
+        model = self.build_lstm_model((self.look_back, 1))
+        early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1, callbacks=[early_stopping])
 
         # Predictions
         predicted = model.predict(x_test)
-        predictions = scaler.inverse_transform(predicted)  # Inverse scaling
-        y_test = scaler.inverse_transform(y_test.reshape(-1, 1))
+        predictions_inverse = scaler.inverse_transform(predicted)
+        y_test_inverse = scaler.inverse_transform(y_test.reshape(-1, 1))
 
         # Evaluation
-        residuals = y_test - predictions
-        metrics = evaluate_model(y_test, predictions, residuals)
+        residuals = y_test_inverse - predictions_inverse
+        metrics = evaluate_model(y_test_inverse, predictions_inverse, residuals)
 
-        # Plot actual vs predicted
-        plt.figure(figsize=(12, 6))
-        plt.plot(y_test, label="Actual")
-        plt.plot(predictions, label="Predicted")
-        plt.title(f"Neural Networks - Actual vs Predicted", pad=20)
-        plt.xlabel("Dataframe Index (Flights)")
-        plt.ylabel("Delay (min.)")
-        metrics_box(metrics)
-        plt.legend()
-        plt.show()
+        return model, y_test_inverse, predictions_inverse, metrics
 
-        return model, y_test, predictions, metrics
+def metric_box(evaluation_metrics, ax):
+    """
+    Add a metrics box to a specific axis.
+
+    Args:
+        evaluation_metrics (dict): A dictionary of evaluation metrics.
+        ax (matplotlib.axes._subplots.AxesSubplot): The subplot axis to add the metrics box to.
+    """
+    metrics_text = "\n\n".join([f"{key}: {value:.2f}" for key, value in evaluation_metrics.items()])
+    props = dict(boxstyle="round,pad=0.4", edgecolor="gray", facecolor="whitesmoke")
+    ax.text(
+        1.05, 0.5, metrics_text, transform=ax.transAxes, fontsize=10,
+        verticalalignment='center', horizontalalignment='left', bbox=props
+    )
+
+def nn_plots(axes, index, actual, predicted, title, metrics):
+    axes[index].plot(actual, label="Actual")
+    axes[index].plot(predicted, label="Predicted")
+    axes[index].set_title(f"{title}: Actual vs Predicted")
+    axes[index].set_xlabel("Dataframe Index (Flights)")
+    axes[index].set_ylabel("Delay (min.)")
+    axes[index].legend()
+    metric_box(metrics, axes[index])
