@@ -1,8 +1,10 @@
-import pytest
 import pandas as pd
-import numpy as np
 from avstats.core.ML.NeuralNetworks import NeuralNetworks
+import pytest
+import numpy as np
+import matplotlib.pyplot as plt
 from unittest.mock import patch
+from avstats.core.ML.NeuralNetworks import nn_plots
 
 
 @pytest.fixture
@@ -53,14 +55,14 @@ def test_neural_networks(mock_scaler, mock_sequential, mock_dataframe):
     model_instance.predict.side_effect = lambda x: np.zeros((x.shape[0], 1))
     model_instance.fit.return_value = None
 
-    # Mock evaluation metrics
+    # Mock evaluation metrics to match the actual keys and structure
     def mock_evaluate_model(_, __, ___):
-        return {"MAE": 0.123, "RMSE": 0.234, "R^2": 0.789}
+        return {"MAE (min.)": 57.28, "MAPE (%)": 100.0, "RMSE (min.)": 62.77}
 
     # Patch evaluate_model function
-    with patch("avstats.core.ML.NeuralNetworks.evaluate_model", mock_evaluate_model):
+    with patch("avstats.core.ML.ModelEvaluation.evaluate_model", mock_evaluate_model):
         # Instantiate NeuralNetworks and run the neural_networks method
-        nn = NeuralNetworks(mock_dataframe)
+        nn = NeuralNetworks(mock_dataframe, column="total_dep_delay", look_back=10)
         model, y_test, predictions, metrics = nn.neural_networks()
 
         # Assertions
@@ -71,5 +73,27 @@ def test_neural_networks(mock_scaler, mock_sequential, mock_dataframe):
         assert y_test.shape == predictions.shape, "Shapes of y_test and predictions should match."
 
         # Verify metrics content
-        expected_metrics = {"MAE": 0.123, "RMSE": 0.234, "R^2": 0.789}
+        expected_metrics = {"MAE (min.)": 57.28, "MAPE (%)": 100.0, "RMSE (min.)": 62.77}
         assert metrics == expected_metrics, "Metrics content is incorrect."
+
+
+@patch("avstats.core.ML.NeuralNetworks.metrics_box")
+def test_nn_plots(mock_metrics_box):
+    """Test the nn_plots function."""
+    np.random.seed(42)
+    actual = np.random.rand(20)
+    predicted = np.random.rand(20)
+    metrics = {"MAE": 0.123, "RMSE": 0.234, "R^2": 0.789}
+
+    # Create a single Axes for testing
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Call nn_plots directly
+    nn_plots(ax, 0, actual, predicted, "LSTM Model", metrics)
+
+    # Check if metrics_box was called
+    mock_metrics_box.assert_called_once_with(metrics, ax)
+
+    # Close the plot after testing
+    plt.close(fig)
+

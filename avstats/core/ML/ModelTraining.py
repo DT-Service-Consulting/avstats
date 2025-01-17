@@ -108,4 +108,3 @@ class ModelTraining:
         plt.ylim(self.y_test.min(), self.y_test.max())
         metrics_box(evaluation_metrics)
         plt.legend(loc="upper left")
-        plt.show()

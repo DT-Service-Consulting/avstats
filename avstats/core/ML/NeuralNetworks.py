@@ -59,26 +59,24 @@ class NeuralNetworks:
 
         return model, y_test_inverse, predictions_inverse, metrics
 
-def metric_box(evaluation_metrics, ax):
+def nn_plots(axes, index, actual, predicted, title, metrics):
     """
-    Add a metrics box to a specific axis.
+    Plots actual vs. predicted values with metrics.
 
     Args:
-        evaluation_metrics (dict): A dictionary of evaluation metrics.
-        ax (matplotlib.axes._subplots.AxesSubplot): The subplot axis to add the metrics box to.
+        axes (matplotlib.axes.Axes or array-like): Axes to plot on.
+        index (int): Index of the subplot (if axes is an array).
+        actual (array-like): Actual values.
+        predicted (array-like): Predicted values.
+        title (str): Plot title.
+        metrics (dict): Dictionary of evaluation metrics.
     """
-    metrics_text = "\n\n".join([f"{key}: {value:.2f}" for key, value in evaluation_metrics.items()])
-    props = dict(boxstyle="round,pad=0.4", edgecolor="gray", facecolor="whitesmoke")
-    ax.text(
-        1.05, 0.5, metrics_text, transform=ax.transAxes, fontsize=10,
-        verticalalignment='center', horizontalalignment='left', bbox=props
-    )
+    ax = axes if not isinstance(axes, (list, np.ndarray)) else axes[index]
 
-def nn_plots(axes, index, actual, predicted, title, metrics):
-    axes[index].plot(actual, label="Actual")
-    axes[index].plot(predicted, label="Predicted")
-    axes[index].set_title(f"{title}: Actual vs Predicted")
-    axes[index].set_xlabel("Dataframe Index (Flights)")
-    axes[index].set_ylabel("Delay (min.)")
-    axes[index].legend()
-    metric_box(metrics, axes[index])
+    ax.plot(actual, label="Actual")
+    ax.plot(predicted, label="Predicted")
+    ax.set_title(f"{title}: Actual vs Predicted")
+    ax.set_xlabel("Dataframe Index (Flights)")
+    ax.set_ylabel("Delay (min.)")
+    ax.legend()
+    metrics_box(metrics, ax)

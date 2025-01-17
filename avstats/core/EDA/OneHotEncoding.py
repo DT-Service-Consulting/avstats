@@ -13,12 +13,11 @@ class OneHotEncoding:
         df (pd.DataFrame): The dataframe containing data to encode.
         """
         # Validate input using Pydantic
-        validated_input = OneHotEncodingInput(df=df)
+        #validated_input = OneHotEncodingInput(df=df)
 
-        self.df = validated_input.df
+        #self.df = validated_input.df
+        self.df = df
         self.df_encoded = None
-        self.df['total_dep_delay_15'] = self.df['total_dep_delay_15'].astype('int64')
-        self.df['total_on_time_15'] = self.df['total_on_time_15'].astype('int64')
 
     def encode_routes(self) -> Union[pd.DataFrame, None]:
         """
@@ -66,19 +65,13 @@ class OneHotEncoding:
         if self.df_encoded is None:
             raise ValueError("Encoded dataframe is not initialized. Run encode_routes() first.")
 
-        # Ensure 'total_passengers' is retained
-        if 'total_passengers' not in self.df_encoded.columns:
-            raise KeyError("'total_passengers' column is missing from the dataframe.")
-
         # Remove columns where all values are zero
         df_cleaned = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)].copy()
 
-        # Ensure 'total_passengers' is in the dataframe
-        if 'total_passengers' not in df_cleaned.columns:
-            df_cleaned['total_passengers'] = self.df_encoded['total_passengers']
-
-        # Convert 'total_passengers' to numeric, coercing errors to NaN
-        df_cleaned['total_passengers'] = pd.to_numeric(df_cleaned['total_passengers'], errors='coerce')
+        # Ensure 'total_passengers' is retained
+        if 'total_passengers' in self.df_encoded.columns:
+            # Convert 'total_passengers' to numeric, coercing errors to NaN
+            df_cleaned['total_passengers'] = pd.to_numeric(df_cleaned['total_passengers'], errors='coerce')
 
         # Select only numeric columns
         df_numeric = df_cleaned.select_dtypes(include=['number'])
