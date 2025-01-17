@@ -86,7 +86,7 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
 def metrics_box(evaluation_metrics):
     # Add the metrics box
     metrics_text = "\n\n".join([f"{key}: {value}" for key, value in evaluation_metrics.items()])
-    props = dict(boxstyle="round,pad=0.6", edgecolor="gray", facecolor="whitesmoke")
+    props = dict(boxstyle="round,pad=0.4", edgecolor="gray", facecolor="whitesmoke")
     plt.text(
         1.1, 0.5, metrics_text, transform=plt.gca().transAxes, fontsize=10,
         verticalalignment='center', horizontalalignment='left', bbox=props

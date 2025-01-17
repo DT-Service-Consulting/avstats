@@ -1,13 +1,15 @@
 # core/ML/TimeSeriesAnalysis.py
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from numpy import ndarray, dtype
+from pandas import Series, DataFrame
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model import ARIMA, ARIMAResults
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from datetime import timedelta, datetime
-from typing import Tuple, Optional, List, Union
+from typing import Tuple, Optional, List, Union, Any, Dict
+from avstats.core.ML.ModelEvaluation import *
 from avstats.core.ML.validators.validator_TimeSeriesAnalysis import TimeSeriesAnalysisInput
 
 
@@ -116,7 +118,7 @@ class TimeSeriesAnalysis:
         plt.title("PACF Plot")
         plt.tight_layout()
 
-    def plot_forecast(self, predictions: pd.Series, title: str) -> None:
+    def plot_forecast(self, predictions: pd.Series, title: str, metrics) -> None:
         """
         Plot actual vs predicted values.
 
@@ -124,18 +126,19 @@ class TimeSeriesAnalysis:
             predictions (pd.Series): Predicted values.
             title (str): Title of the plot.
         """
-        plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(12, 4))
         plt.plot(self.df[self.column], label='Actual')
         plt.plot(predictions, label='Predicted', color='orange')
         for month in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
             plt.axvline(month, color='k', linestyle='--', alpha=0.2)
         plt.title(title)
         plt.ylabel('Flights')
+        metrics_box(metrics)
         plt.legend()
         plt.show()
 
     def arima_sarimax_forecast(self, order: Tuple[int, int, int], seasonal_order: Optional[
-    Tuple[int, int, int, int]] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Union[ARIMA, SARIMAX]]:
+    Tuple[int, int, int, int]] = None) -> tuple[ARIMAResults | Any, Any, Any, Any, dict[str, float | None]]:
         """
         Perform ARIMA or SARIMAX forecasting.
 
@@ -166,13 +169,15 @@ class TimeSeriesAnalysis:
         residuals = test_data - predictions
 
         # Plot results
-        self.plot_forecast(predictions, title)
+        metrics = evaluate_model(test_data, predictions, residuals)
+        self.plot_forecast(predictions, title, metrics)
 
         # Evaluate
-        return test_data, predictions, residuals, model
+        return model, test_data, predictions, residuals, metrics
 
     def rolling_forecast(self, order: Tuple[int, int, int], train_window: int, forecast_steps: int = 1,
-                     seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                     seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> tuple[
+        ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]], dict[str, float | None]]:
         """
         Perform rolling forecast.
 
@@ -204,7 +209,8 @@ class TimeSeriesAnalysis:
         residuals = rolling_actual - rolling_predictions
 
         # Plot results
+        metrics = evaluate_model(rolling_actual, rolling_predictions, residuals)
         self.plot_forecast(pd.Series(rolling_predictions,index=self.df[self.column].index[train_window:len(
-            self.df[self.column]) - forecast_steps + 1]),title="Rolling Forecast vs Actual")
+            self.df[self.column]) - forecast_steps + 1]),title="Rolling Forecast vs Actual", metrics=metrics)
 
-        return rolling_actual, rolling_predictions, residuals
+        return rolling_actual, rolling_predictions, residuals, metrics
