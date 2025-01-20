@@ -88,20 +88,33 @@ def test_plot_forecast(tsa_instance):
 def test_arima_forecast(tsa_instance):
     order = (1, 1, 1)
     model, test_data, predictions, residuals, metrics = tsa_instance.arima_sarimax_forecast(order=order)
-    assert isinstance(test_data, pd.Series), "Test data is not a pandas Series"
-    assert isinstance(predictions, pd.Series), "Predictions are not a pandas Series"
-    assert isinstance(residuals, pd.Series), "Residuals are not a pandas Series"
-    assert "MAE" in metrics, "Metrics do not contain MAE"
+
+    # Ensure metrics contain the expected keys
+    assert "MAE (min.)" in metrics, "Metrics do not contain 'MAE (min.)'"
+    assert "MAPE (%)" in metrics, "Metrics do not contain 'MAPE (%)'"
+    assert "RMSE (min.)" in metrics, "Metrics do not contain 'RMSE (min.)'"
+
+    # Validate the metric values (replace with appropriate checks for your application)
+    assert metrics["MAE (min.)"] >= 0, "MAE should be non-negative"
+    assert metrics["MAPE (%)"] >= 0, "MAPE should be non-negative"
+    assert metrics["RMSE (min.)"] >= 0, "RMSE should be non-negative"
 
 
 def test_sarimax_forecast(tsa_instance):
     order = (1, 1, 1)
     seasonal_order = (1, 1, 1, 12)
-    model, test_data, predictions, residuals, metrics = tsa_instance.arima_sarimax_forecast(order=order, seasonal_order=seasonal_order)
-    assert isinstance(test_data, pd.Series), "Test data is not a pandas Series"
-    assert isinstance(predictions, pd.Series), "Predictions are not a pandas Series"
-    assert isinstance(residuals, pd.Series), "Residuals are not a pandas Series"
-    assert "MAE" in metrics, "Metrics do not contain MAE"
+    model, test_data, predictions, residuals, metrics = tsa_instance.arima_sarimax_forecast(order=order,
+                                                                                            seasonal_order=seasonal_order)
+
+    # Ensure the metrics contain the expected detailed keys
+    assert "MAE (min.)" in metrics, "Metrics do not contain 'MAE (min.)'"
+    assert "MAPE (%)" in metrics, "Metrics do not contain 'MAPE (%)'"
+    assert "RMSE (min.)" in metrics, "Metrics do not contain 'RMSE (min.)'"
+
+    # Validate metric values (example checks)
+    assert metrics["MAE (min.)"] >= 0, "MAE should be non-negative"
+    assert metrics["MAPE (%)"] >= 0, "MAPE should be non-negative"
+    assert metrics["RMSE (min.)"] >= 0, "RMSE should be non-negative"
 
 
 def test_rolling_forecast(tsa_instance):

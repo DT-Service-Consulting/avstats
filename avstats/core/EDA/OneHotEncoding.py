@@ -13,9 +13,9 @@ class OneHotEncoding:
         df (pd.DataFrame): The dataframe containing data to encode.
         """
         # Validate input using Pydantic
-        #validated_input = OneHotEncodingInput(df=df)
+        validated_input = OneHotEncodingInput(df=df)
 
-        #self.df = validated_input.df
+        self.df = validated_input.df
         self.df = df
         self.df_encoded = None
 
