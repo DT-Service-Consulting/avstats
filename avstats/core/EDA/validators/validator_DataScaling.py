@@ -1,6 +1,8 @@
 # core/ML/validators/validator_DataScaling.py
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from sklearn.preprocessing import StandardScaler
 import pandas as pd
+import numpy as np
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class DataPreparationInput(BaseModel):
@@ -19,7 +21,7 @@ class DataPreparationInput(BaseModel):
 
     @field_validator("target_variable")
     def validate_target_variable(cls, target_variable, info):
-        df = info.data.get("df")  # Access `df` from ValidationInfo
+        df = info.data.get("df")
         if df is not None and target_variable not in df.columns:
             raise ValueError(f"Target variable '{target_variable}' is not present in the DataFrame columns")
         return target_variable
