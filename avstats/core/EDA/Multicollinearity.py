@@ -2,7 +2,7 @@
 import pandas as pd
 from pandas import DataFrame
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from typing import Union, Any, Tuple
+from typing import Union, Any
 from avstats.core.EDA.validators.validator_Multicollinearity import MulticollinearityInput
 
 
@@ -50,10 +50,7 @@ class Multicollinearity:
             # Calculate VIF for each feature
             vif_data = pd.DataFrame({
                 "feature": features.columns,
-                "VIF": [
-                    variance_inflation_factor(features.values, i)
-                    for i in range(features.shape[1])
-                ]
+                "VIF": [variance_inflation_factor(features.values, i) for i in range(features.shape[1])]
             }).round(2)
 
             # Remove infinite or NaN VIF values
@@ -72,5 +69,8 @@ class Multicollinearity:
             feature_to_remove = vif_data.loc[vif_data['VIF'].idxmax(), 'feature']
             removed_features.append(feature_to_remove)
             features = features.drop(columns=feature_to_remove)
+
+            self.y = self.y.reset_index(drop=True)
+            features = features.reset_index(drop=True)
 
         return pd.concat([self.y, features], axis=1), features, vif_data

@@ -47,8 +47,7 @@ def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.
     return np.array(scores)
 
 
-def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None) -> (
-        Dict)[str, Union[float, None]]:
+def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None) -> Dict[str, Union[float, None]]:
     """
     Evaluate model performance using MAE, MAPE, and RMSE.
 
@@ -58,11 +57,7 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
     residuals (Optional[np.ndarray]): Difference between actual and predicted values. Default is None.
 
     Returns:
-    Tuple[Dict[str, Union[float, None]], float, Optional[float], float]:
-        - Metrics dictionary
-        - Mean Absolute Error (MAE)
-        - Mean Absolute Percentage Error (MAPE)
-        - Root Mean Squared Error (RMSE)
+    Dict[str, Union[float, None]]: Evaluation metrics including MAE, MAPE, and RMSE.
     """
     # Ensure all inputs are numpy arrays
     if isinstance(test_data, pd.Series):
@@ -76,12 +71,21 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
     ModelEvaluationInput(test_data=test_data, predictions=predictions, residuals=residuals)
 
     mae = mean_absolute_error(test_data, predictions)
-    mape = np.mean(abs(residuals / test_data)) * 100 if residuals is not None else None
     rmse = root_mean_squared_error(test_data, predictions)
 
-    return {"MAE (min.)": round(mae, 2),
-            "MAPE (%)": round(mape, 2) if mape is not None else None,
-            "RMSE (min.)": round(rmse, 2)}
+    # Handle zero values in test_data for MAPE calculation
+    if residuals is not None:
+        non_zero_mask = test_data != 0  # Exclude zero values
+        mape = np.mean(abs(residuals[non_zero_mask] / test_data[non_zero_mask])) * 100 if non_zero_mask.any() else None
+    else:
+        mape = None
+
+    return {
+        "MAE (min.)": round(mae, 2),
+        "MAPE (%)": round(mape, 2) if mape is not None else None,
+        "RMSE (min.)": round(rmse, 2)
+    }
+
 
 def metrics_box(evaluation_metrics, ax=None):
     """
