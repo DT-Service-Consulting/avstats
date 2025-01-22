@@ -18,17 +18,27 @@ class WeatherData:
         Args:
             df (pd.DataFrame): DataFrame containing flight schedule information.
         """
-        self.df = df
-        self.weather_records = []
-        self.weather_df = None
-        self.airports = load('IATA')  # Load airport data once during initialization
+        # Validate inputs using the WeatherDataInput Pydantic model
+        validated_inputs = WeatherDataInput(
+            df=df,
+            weather_records=[],
+            weather_df=None,
+            airports=load('IATA'),
+            custom_coords={
+                'KIV': (46.9279, 28.9303),  # Chișinău International Airport
+                'CQM': (30.1225, 31.4041),  # Cluj International Airport
+                'SZY': (53.4841, 20.7465),  # Olsztyn-Mazury Airport
+            },
+            missing_weather_records=[]
+        )
 
-        # Custom coordinates for missing airports
-        self.custom_coords = {
-            'KIV': (46.9279, 28.9303),  # Chișinău International Airport
-            'CQM': (30.1225, 31.4041),  # Cluj International Airport
-            'SZY': (53.4841, 20.7465),  # Olsztyn-Mazury Airport
-        }
+        # Store validated inputs
+        self.df = validated_inputs.df
+        self.weather_records = validated_inputs.weather_records
+        self.weather_df = validated_inputs.weather_df
+        self.airports = validated_inputs.airports
+        self.custom_coords = validated_inputs.custom_coords
+        self.missing_weather_records = validated_inputs.missing_weather_records
 
     def get_coordinates(self, iata_code: str) -> tuple[Optional[float], Optional[float]]:
         """
@@ -85,7 +95,7 @@ class WeatherData:
         """
         Fetch weather data for unique departure and arrival coordinates within the schedule's date range.
 
-        This method populates the `weather_records` list with weather data and combines it into a single DataFrame.
+        This method populates the `weather_records` list with weather data and logs missing weather data.
         """
         # Extract unique dates for both departure and arrival
         unique_dates = pd.to_datetime(self.df[['adt', 'aat']].stack().unique())
@@ -108,6 +118,9 @@ class WeatherData:
         all_coords = pd.concat([unique_dep_coords, unique_arr_coords]).drop_duplicates()
         print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
 
+        # List to store failed fetches
+        missing_weather_records = []
+
         # Iterate over unique coordinates, fetching weather data
         for i, row in all_coords.iterrows():
             lat, lon, iata_code = row[['lat', 'lon', 'iata_code']]
@@ -124,13 +137,9 @@ class WeatherData:
                     break
 
                 except Exception as e:
-                    print(f"Attempt {attempt + 1}/{retries}: Error fetching data for {lat}, {lon}, {iata_code}: {e}")
-                    time.sleep(1)  # Wait before retrying
-
-                    # Log failure after all retries fail
                     if attempt == retries - 1:
-                        with open("failed_coordinates.log", "a") as log_file:
-                            log_file.write(f"{lat},{lon},{iata_code}\n")
+                        missing_weather_records.append({'lat': lat, 'lon': lon, 'iata_code': iata_code})
+                    time.sleep(1)  # Wait before retrying
 
             # Progress update
             if (i + 1) % 100 == 0:
@@ -142,6 +151,14 @@ class WeatherData:
         # Combine all fetched weather data into a single DataFrame
         self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
         print(f"Weather data fetching completed with {len(self.weather_df)} records.")
+
+        # Save missing weather data to a file for user inspection
+        if missing_weather_records:
+            missing_weather_df = pd.DataFrame(missing_weather_records)
+            missing_weather_file = "missing_weather_data.csv"
+            missing_weather_df.to_csv(missing_weather_file, index=False)
+            print(f"Weather data could not be fetched for {len(missing_weather_records)} routes. "
+                  f"Details saved to '{missing_weather_file}'.")
 
     def merge_weather_with_flights(self) -> pd.DataFrame:
         """
