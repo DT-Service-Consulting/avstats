@@ -27,8 +27,11 @@ def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.
     if isinstance(y_train, pd.Series):
         y_train = y_train.to_numpy()
 
-    # Validate inputs using Pydantic
-    CrossValidationInput(x_train=x_train, y_train=y_train, cv=cv)
+    # Validate inputs
+    assert not np.any(np.isnan(x_train)), "x_train contains NaN values."
+    assert not np.any(np.isnan(y_train)), "y_train contains NaN values."
+    assert np.all(np.isfinite(x_train)), "x_train contains infinite values."
+    assert np.all(np.isfinite(y_train)), "y_train contains infinite values."
 
     kf = KFold(n_splits=cv, shuffle=True, random_state=42)
     scores = []
@@ -37,11 +40,16 @@ def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.
         x_train_fold, x_val_fold = x_train[train_index], x_train[val_index]
         y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
 
-        # Fit a new OLS model for each fold
-        ols_model = sm.OLS(y_train_fold, sm.add_constant(x_train_fold))
-        model_fit = ols_model.fit()
-        y_pred_fold = model_fit.predict(sm.add_constant(x_val_fold))
+        # Add constant to both training and validation sets
+        x_train_fold_with_const = sm.add_constant(x_train_fold, has_constant='add')
+        x_val_fold_with_const = sm.add_constant(x_val_fold, has_constant='add')
 
+        # Fit OLS model
+        ols_model = sm.OLS(y_train_fold, x_train_fold_with_const)
+        model_fit = ols_model.fit()
+        y_pred_fold = model_fit.predict(x_val_fold_with_const)
+
+        # Calculate R2 score
         scores.append(r2_score(y_val_fold, y_pred_fold))
 
     return np.array(scores)

@@ -44,9 +44,9 @@ class ModelTraining:
         Returns:
         Tuple[sm.OLS, np.ndarray]: Trained OLS Regression model and predicted values for x_test.
         """
-        # Add a constant (intercept) to the model
-        x_train_with_const = sm.add_constant(self.x_train)
-        x_test_with_const = sm.add_constant(self.x_test)
+        # Check if a constant column already exists
+        x_train_with_const = sm.add_constant(self.x_train, has_constant='add')
+        x_test_with_const = sm.add_constant(self.x_test, has_constant='add')
 
         # Fit the model using statsmodels OLS
         self.model = sm.OLS(self.y_train, x_train_with_const).fit()
@@ -81,30 +81,35 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self, title, evaluation_metrics) -> None:
+    def plot_model(self, title, evaluation_metrics, ax=None) -> None:
         """
-        Plots actual vs predicted values with a metrics table, adding space between lines.
+        Plots actual vs predicted values with a metrics table.
 
         Parameters:
-        - y_test (array-like): Actual values.
-        - y_pred (array-like): Predicted values.
-        - metrics (dict): Evaluation metrics (e.g., MAE, RMSE, MAPE).
-        - model_name (str): Name of the model for the plot title.
+        - title (str): Title for the plot.
+        - evaluation_metrics (dict): Evaluation metrics to display in the plot.
+        - ax (matplotlib.axes._subplots.AxesSubplot): Axis for the subplot (optional).
         """
         if self.y_pred is None:
-            raise ValueError("You need to call predict() before plotting.")
+            raise ValueError("You need to call train_linear_model() before plotting.")
 
         sns.set_theme(style="whitegrid")
-        plt.figure(figsize=(12, 6))
-        plt.scatter(self.y_test, self.y_pred, alpha=0.7, label='Predictions')
-        plt.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2,
-                 label='Perfect Prediction')
 
-        # Add plot details
-        plt.title(f"{title} - Actual vs Predicted", pad=20)
-        plt.xlabel("Actual Values - Monthly (min.)")
-        plt.ylabel("Predicted Values - Monthly (min.)")
-        plt.xlim(self.y_test.min(), self.y_test.max())
-        plt.ylim(self.y_test.min(), self.y_test.max())
-        metrics_box(evaluation_metrics)
-        plt.legend(loc="upper left")
+        # If no axis is provided, create a new plot
+        if ax is None:
+            plt.figure(figsize=(12, 6))
+            ax = plt.gca()
+
+        # Plot scatter and perfect prediction line
+        sns.scatterplot(x=self.y_test, y=self.y_pred, ax=ax, alpha=0.7, label='Predictions')
+        ax.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()], color='red', lw=2,
+                label='Perfect Prediction', )
+
+        # Add details to the plot
+        ax.set_title(f"{title} - Actual vs Predicted", pad=20)
+        ax.set_xlabel("Actual Values (min.)")
+        ax.set_ylabel("Predicted Values (min.)")
+        ax.set_xlim(self.y_test.min(), self.y_test.max())
+        ax.set_ylim(self.y_test.min(), self.y_test.max())
+        ax.legend()
+        metrics_box(evaluation_metrics, ax)
