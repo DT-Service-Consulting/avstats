@@ -16,22 +16,22 @@ def sample_data():
 
 def test_valid_multicollinearity_instance(sample_data):
     scaled_df, y = sample_data
-    instance = Multicollinearity(scaled_df=scaled_df, y=y, verbose=True)
+    instance = Multicollinearity(scaled_df=scaled_df, y=y)
     assert isinstance(instance, Multicollinearity), "Instance should be of Multicollinearity class"
 
 
 def test_empty_dataframe():
     with pytest.raises(ValueError, match="scaled_df cannot be empty"):
-        Multicollinearity(scaled_df=pd.DataFrame(), y=pd.Series([1, 2, 3]), verbose=True)
+        Multicollinearity(scaled_df=pd.DataFrame(), y=pd.Series([1, 2, 3]))
 
 
 def test_missing_values():
     scaled_df = pd.DataFrame({"Feature1": [1, None, 3]})
     with pytest.raises(ValueError, match="scaled_df contains missing values"):
-        Multicollinearity(scaled_df=scaled_df, y=pd.Series([1, 2, 3]), verbose=True)
+        Multicollinearity(scaled_df=scaled_df, y=pd.Series([1, 2, 3]))
 
 
 def test_invalid_target():
     scaled_df = pd.DataFrame({"Feature1": [1, 2, 3]})
     with pytest.raises(ValueError, match="Input should be an instance of Series"):
-        Multicollinearity(scaled_df=scaled_df, y=[1, 2, 3], verbose=True)
+        Multicollinearity(scaled_df=scaled_df, y=[1, 2, 3])

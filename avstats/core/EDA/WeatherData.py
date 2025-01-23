@@ -119,7 +119,7 @@ class WeatherData:
         print(f"Starting weather data fetch for {len(all_coords)} coordinate pairs from {start_date} to {end_date}.")
 
         # List to store failed fetches
-        missing_weather_records = []
+        self.missing_weather_records = []
 
         # Iterate over unique coordinates, fetching weather data
         for i, row in all_coords.iterrows():
@@ -134,15 +134,19 @@ class WeatherData:
                         weather_data = weather_data.reset_index(drop=False)
                         weather_data['lat'], weather_data['lon'], weather_data['iata_code'] = lat, lon, iata_code
                         self.weather_records.append(weather_data)
-                    break
-
-                except Exception as e:
-                    if attempt == retries - 1:
-                        missing_weather_records.append({'lat': lat, 'lon': lon, 'iata_code': iata_code})
-                    time.sleep(1)  # Wait before retrying
+                    break  # Exit retry loop if successful
+                except Exception:
+                    if attempt == retries - 1:  # On final failure, log the missing record
+                        self.missing_weather_records.append({
+                            'lat': lat,
+                            'lon': lon,
+                            'iata_code': iata_code,
+                            'start_date': start_date.strftime('%Y-%m-%d'),
+                            'end_date': end_date.strftime('%Y-%m-%d')
+                        })
 
             # Progress update
-            if (i + 1) % 100 == 0:
+            if (i + 1) % 100 == 0 or i + 1 == len(all_coords):
                 print(f"Fetched weather for {i + 1} / {len(all_coords)} coordinates.")
 
             # Optional: Sleep to avoid API throttling
@@ -150,14 +154,15 @@ class WeatherData:
 
         # Combine all fetched weather data into a single DataFrame
         self.weather_df = pd.concat(self.weather_records, ignore_index=True) if self.weather_records else pd.DataFrame()
+
         print(f"Weather data fetching completed with {len(self.weather_df)} records.")
 
         # Save missing weather data to a file for user inspection
-        if missing_weather_records:
-            missing_weather_df = pd.DataFrame(missing_weather_records)
+        if self.missing_weather_records:
+            missing_weather_df = pd.DataFrame(self.missing_weather_records)
             missing_weather_file = "missing_weather_data.csv"
             missing_weather_df.to_csv(missing_weather_file, index=False)
-            print(f"Weather data could not be fetched for {len(missing_weather_records)} routes. "
+            print(f"Weather data could not be fetched for {len(self.missing_weather_records)} routes. "
                   f"Details saved to '{missing_weather_file}'.")
 
     def merge_weather_with_flights(self) -> pd.DataFrame:

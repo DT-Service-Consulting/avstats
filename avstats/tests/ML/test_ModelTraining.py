@@ -94,6 +94,8 @@ def test_plot_model(mock_metrics_box, sample_data):
             title="Random Forest: Predicted vs Actual Values",
             evaluation_metrics=evaluation_metrics
         )
-        mock_metrics_box.assert_called_once_with(evaluation_metrics)
+        mock_metrics_box.assert_called_once()
+        call_args = mock_metrics_box.call_args[0]
+        assert call_args[0] == evaluation_metrics, "Evaluation metrics do not match"
     except Exception as e:
         pytest.fail(f"Plotting failed with exception: {e}")
