@@ -1,7 +1,7 @@
 # core/ML/ModelSummary.py
-from avstats.core.ML.ModelTraining import ModelTraining
-from avstats.core.ML.ModelEvaluation import *
 from sklearn.model_selection import train_test_split
+from avstats.core.ML.ModelEvaluation import *
+from avstats.core.ML.ModelTraining import ModelTraining
 
 
 def modelling_summary(dataframes, titles, models_to_train, output_file="model_summaries.csv"):
@@ -15,7 +15,9 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
     - output_file: File path to save the model summaries as a CSV file.
 
     Returns:
-    - pd.DataFrame: DataFrame containing the model summaries.
+    - dict: Dictionary with dataset titles as keys and their trained models and metrics as values.
+    - pd.DataFrame: DataFrame containing the overall model summaries.
+    - dict: Simplified dictionary with only the key metrics (MAE, MAPE, RMSE) for each model and dataset.
     """
     num_plots = len(dataframes) * len(models_to_train)
     rows = (num_plots + 1) // 2
@@ -24,9 +26,9 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
     fig, axes = plt.subplots(rows, cols, figsize=(20, rows * 5))
     axes = axes.flatten()
 
-    evaluation_results = []
     model_summaries = []
     plot_idx = 0
+    metrics_summary = {}
 
     for i, ((df, column), title) in enumerate(zip(dataframes, titles)):
         try:
@@ -35,6 +37,8 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
             y = df[column]
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
             model_training = ModelTraining(x_train, y_train, x_test, y_test)
+
+            dataset_metrics = {}
 
             for model_name in models_to_train:
                 # Train the model
@@ -45,11 +49,16 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
                 residuals = y_test - predictions
                 metrics = evaluate_model(y_test, predictions, residuals)
 
+                # Store simplified metrics
+                dataset_metrics[model_name] = {
+                    "MAE (min.)": metrics["MAE (min.)"],
+                    "MAPE (%)": metrics["MAPE (%)"],
+                    "RMSE (min.)": metrics["RMSE (min.)"],
+                }
+
                 # Plot results
                 ax = axes[plot_idx]
-                model_training.plot_model(
-                    title=f"{model_name} - {title}", evaluation_metrics=metrics, ax=ax
-                )
+                model_training.plot_model(title=f"{model_name} - {title}", evaluation_metrics=metrics, ax=ax)
                 plot_idx += 1
 
                 # Cross-validation
@@ -68,6 +77,8 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
                 }
                 model_summaries.append(model_summary)
 
+            metrics_summary[title] = dataset_metrics
+
         except KeyError as e:
             print(f"Skipping DataFrame {i} due to missing column: {e}")
 
@@ -83,4 +94,4 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
     model_summary_df = pd.DataFrame(model_summaries)
     model_summary_df.to_csv(output_file, index=False)
 
-    return model_summary_df
+    return model_summary_df, metrics_summary
