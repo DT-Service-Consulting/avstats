@@ -71,27 +71,27 @@ class DataPreprocessing:
             "data_types": data_types,
         }
 
-    def calculate_correlation(self) -> pd.DataFrame:
-        """
-        Calculate the correlation matrix for numerical columns.
-
-        Returns:
-            pd.DataFrame: Correlation matrix of numerical columns.
-        """
-        return self.df.corr()
-
-    def check_data_balance(self) -> dict:
+    def check_data_balance(self) -> pd.DataFrame:
         """
         Analyze the balance of categorical variables.
 
         Returns:
-            dict: A dictionary containing value counts for each categorical column.
+            pd.DataFrame: A DataFrame containing value counts for each categorical column.
+                          Each row represents a category value, and columns represent
+                          the categorical variable, value, and proportion.
         """
         categorical_columns = self.df.select_dtypes(include=['object', 'category']).columns
-        return {
-            col: self.df[col].value_counts(normalize=True).to_dict()
-            for col in categorical_columns
-        }
+        balance_data = []
+
+        for col in categorical_columns:
+            value_counts = self.df[col].value_counts(normalize=True).reset_index()
+            value_counts.columns = [col + "_value", "proportion"]
+            value_counts["column"] = col
+            balance_data.append(value_counts)
+
+        # Combine all value counts into a single DataFrame
+        balance_df = pd.concat(balance_data, ignore_index=True)
+        return balance_df
 
     def detect_outliers(self, method: str = "IQR") -> pd.DataFrame:
         """
@@ -123,29 +123,6 @@ class DataPreprocessing:
             raise ValueError("Invalid method. Choose 'IQR' or 'z-score'.")
 
         return outliers
-
-    def exploratory_analysis(self) -> dict:
-        """
-        Perform exploratory data analysis (EDA) on the DataFrame.
-
-        Returns:
-            dict: Comprehensive report containing:
-                - Summary statistics
-                - Missing values analysis
-                - Correlation analysis
-                - Data balance check
-        """
-        summary = self.get_summary_statistics()
-        missing_info = self.check_missing_and_duplicates()
-        correlations = self.calculate_correlation()
-        data_balance = self.check_data_balance()
-
-        return {
-            "summary_statistics": summary,
-            "missing_values_analysis": missing_info,
-            "correlation_matrix": correlations,
-            "data_balance": data_balance,
-        }
 
     def preprocess_data(self) -> pd.DataFrame:
         """
