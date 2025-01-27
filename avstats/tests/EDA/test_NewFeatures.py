@@ -1,5 +1,5 @@
 import pytest
-from avstats.core.EDA.NewFeatures import NewFeatures
+from avstats.core.EDA.FeatureEngineering import NewFeatures
 
 
 class TestNewFeatures:

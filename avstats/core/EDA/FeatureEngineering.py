@@ -1,8 +1,18 @@
-# NewFeatures.py
+# FeatureEngineering.py
+import pandas as pd
 from avstats.core.EDA.validators.validator_NewFeatures import CategorizeFlightInput, GetTimeWindowInput
 
 
-class NewFeatures:
+class FeatureEngineering:
+    def __init__(self, df) -> None:
+        """
+        Initialize the DataCleaning class with a unique column.
+
+        Parameters:
+        unique_column (str): The name of the column to check for duplicates.
+        """
+        self.df = df
+
     @staticmethod
     def categorize_flight(cargo: bool, private: bool) -> str:
         """
@@ -44,3 +54,21 @@ class NewFeatures:
         elif validated_input.hour < 18:
             return 'Afternoon'
         return 'Evening'
+
+    def new_features(self) -> pd.DataFrame:
+        # Feature engineering
+        self.df['dep_delay_15'] = (self.df['dep_delay'] > 15).astype(int)
+        self.df['dep_delay_cat'] = pd.cut(
+            self.df['dep_delay'], bins=[-float('inf'), 15, 60, float('inf')], labels=['Short', 'Medium', 'Long'])
+
+        self.df['flight_cat'] = self.df.apply(
+            lambda row: self.categorize_flight(row['cargo'], row['private']), axis=1)
+
+        self.df['dep_time_window'] = self.df['adt'].apply(
+            lambda x: self.get_time_window(x.hour) if pd.notnull(x) else None)
+
+        self.df['arr_time_window'] = self.df['aat'].apply(
+            lambda x: self.get_time_window(x.hour) if pd.notnull(x) else None)
+
+        self.df['on_time_15'] = (self.df['dep_delay'] < 15).astype(int)
+        return self.df

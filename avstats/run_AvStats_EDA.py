@@ -10,7 +10,7 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 try:
     from core.DataLoader import DataLoader
-    from core.EDA.DataProcessing import DataProcessing
+    from core.EDA.DataPreprocessing import DataProcessing
     from core.EDA.FlightPerformance import FlightPerformance
     from core.EDA.WeatherData import WeatherData
     from core.EDA.MergeData import MergeData

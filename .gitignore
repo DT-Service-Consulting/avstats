@@ -138,3 +138,4 @@ data/df_passengers_vif.csv
 data/df_weather_encoded.csv
 *.csv
 *.csv
+*.json

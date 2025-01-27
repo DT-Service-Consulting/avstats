@@ -1,4 +1,4 @@
-from avstats.core.EDA.DataProcessing import DataProcessing
+from avstats.core.EDA.DataPreprocessing import DataProcessing
 import pytest
 import pandas as pd
 from unittest.mock import patch

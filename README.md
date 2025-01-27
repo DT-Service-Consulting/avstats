@@ -136,11 +136,11 @@ To tune hyperparameters and get the best model:
 
 ```python
 import pandas as pd
-from avstats.core.EDA import DataProcessing
+from avstats.core.EDA import DataPreprocessing
 
 data = {
-    'id': [1, 2, 2, 4, 5],
-    'value': [10, 20, 20, None, 50]
+  'id': [1, 2, 2, 4, 5],
+  'value': [10, 20, 20, None, 50]
 }
 df = pd.DataFrame(data)
 cleaner = DataProcessing(unique_column='id')
