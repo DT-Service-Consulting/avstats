@@ -93,36 +93,76 @@ class DataPreprocessing:
         balance_df = pd.concat(balance_data, ignore_index=True)
         return balance_df
 
-    def detect_outliers(self, method: str = "IQR") -> pd.DataFrame:
+    def detect_outliers(self, method="IQR", features=None, threshold=1.5):
         """
-        Detect outliers in numerical columns.
+        Detect outliers in the dataset using IQR or z-score.
 
         Parameters:
-            method (str): Method to detect outliers ('IQR' or 'z-score').
+        - method (str): The outlier detection method ("IQR" or "z-score").
+        - features (list): List of numerical features to check for outliers.
+        - threshold (float): Threshold for outlier detection (1.5 for IQR, 3 for z-score).
 
         Returns:
-            pd.DataFrame: A DataFrame highlighting outliers for each numerical column.
+        - pd.DataFrame: DataFrame containing outliers for the specified features.
         """
-        numerical_cols = self.df.select_dtypes(include=[np.number])
-        outliers = pd.DataFrame(index=self.df.index)
+        if features is None:
+            features = self.df.select_dtypes(include=[np.number]).columns
 
-        if method == "IQR":
-            for col in numerical_cols:
-                q1 = self.df[col].quantile(0.25)
-                q3 = self.df[col].quantile(0.75)
+        outliers = {}
+        for feature in features:
+            if method == "IQR":
+                q1 = self.df[feature].quantile(0.25)
+                q3 = self.df[feature].quantile(0.75)
                 iqr = q3 - q1
-                lower_bound = q1 - 1.5 * iqr
-                upper_bound = q3 + 1.5 * iqr
-                outliers[col] = ~self.df[col].between(lower_bound, upper_bound)
-        elif method == "z-score":
-            for col in numerical_cols:
-                mean = self.df[col].mean()
-                std = self.df[col].std()
-                outliers[col] = ((self.df[col] - mean) / std).abs() > 3
-        else:
-            raise ValueError("Invalid method. Choose 'IQR' or 'z-score'.")
+                mask = (self.df[feature] < (q1 - threshold * iqr)) | \
+                       (self.df[feature] > (q3 + threshold * iqr))
+            elif method == "z-score":
+                mean = self.df[feature].mean()
+                std = self.df[feature].std()
+                mask = np.abs((self.df[feature] - mean) / std) > threshold
+            else:
+                raise ValueError("Invalid method. Choose 'IQR' or 'z-score'.")
+
+            outliers[feature] = self.df[mask]
 
         return outliers
+
+    def handle_outliers(self, method="remove", features=None, detection_method="IQR", threshold=1.5):
+        """
+        Handle outliers in the dataset.
+
+        Parameters:
+        - method (str): How to handle outliers ("remove" or "cap").
+        - features (list): List of numerical features to handle outliers.
+        - detection_method (str): Outlier detection method ("IQR" or "z-score").
+        - threshold (float): Threshold for outlier detection.
+
+        Returns:
+        - pd.DataFrame: Updated DataFrame after handling outliers.
+        """
+        outliers = self.detect_outliers(method=detection_method, features=features, threshold=threshold)
+
+        for feature, outlier_df in outliers.items():
+            if method == "remove":
+                self.df = self.df.drop(outlier_df.index)
+            elif method == "cap":
+                if detection_method == "IQR":
+                    q1 = self.df[feature].quantile(0.25)
+                    q3= self.df[feature].quantile(0.75)
+                    iqr = q3 - q1
+                    lower_bound = q1 - threshold * iqr
+                    upper_bound = q3 + threshold * iqr
+                elif detection_method == "z-score":
+                    mean = self.df[feature].mean()
+                    std = self.df[feature].std()
+                    lower_bound = mean - threshold * std
+                    upper_bound = mean + threshold * std
+                else:
+                    raise ValueError("Invalid detection method. Use 'IQR' or 'z-score'.")
+
+                self.df[feature] = self.df[feature].clip(lower=lower_bound, upper=upper_bound)
+
+        return self.df
 
     def preprocess_data(self) -> pd.DataFrame:
         """
