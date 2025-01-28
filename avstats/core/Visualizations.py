@@ -5,7 +5,7 @@ import pandas as pd
 from math import pi
 
 
-def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f}", color='white'):
+def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f}", color='white', ha='right'):
     """
     Annotates bars in a bar plot with text.
 
@@ -18,14 +18,14 @@ def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f
     """
     if use_enumeration:
         for i, (v, p) in enumerate(data):
-            ax.text(v + offset, i, label_format.format(v, p), color=color, ha='right', va='center', fontsize=10)
+            ax.text(v + offset, i, label_format.format(v, p), color=color, ha=ha, va='center', fontsize=10)
     else:
         for i, v in enumerate(data):
-            ax.text(v + offset, i, label_format.format(v), color=color, ha='right', va='center', fontsize=10)
+            ax.text(v + offset, i, label_format.format(v), color=color, ha=ha, va='center', fontsize=10)
 
-def plot_radar_chart(df):
+def plot_radar_and_flight_cat(df):
     """
-    Creates a radar chart for characteristics of delayed flights.
+    Combines a radar chart and a bar plot into a single figure.
 
     Parameters:
     df (pd.DataFrame): Flight dataset with required columns.
@@ -34,7 +34,11 @@ def plot_radar_chart(df):
     df['DayOfWeek'] = pd.to_datetime(df['sdt']).dt.day_name()
     df['Month'] = pd.to_datetime(df['sdt']).dt.to_period('M')
 
-    # Aggregate delays
+    # Flight Type
+    cat_counts = df['flight_cat'].value_counts()
+    cat_counts_percentage = (cat_counts / df['flight_cat'].count() * 100).round(2)
+
+    # Radar chart data
     radar_data = {
         'Routes': df.groupby('route_iata_code')['dep_delay'].mean().head(10).mean(),
         'Distance': df.groupby('calc_flight_distance_km')['dep_delay'].mean().mean(),
@@ -43,23 +47,32 @@ def plot_radar_chart(df):
         'Day of Week': df.groupby('DayOfWeek')['dep_delay'].mean().mean(),
         'Month': df.groupby('Month')['dep_delay'].mean().mean(),
     }
-
     labels = list(radar_data.keys())
     values = list(radar_data.values())
     values += values[:1]  # Close the radar chart
-
-    # Plot radar chart
     angles = [n / float(len(labels)) * 2 * pi for n in range(len(labels))]
     angles += angles[:1]
 
-    plt.figure(figsize=(4, 4))
-    ax = plt.subplot(111, polar=True)
+    plt.figure(figsize=(16, 4))
+    sns.set_style("whitegrid")
+
+    # Radar chart
+    plt.subplot(121, polar=True)
     plt.xticks(angles[:-1], labels, color='grey', size=9)
-    ax.plot(angles, values, linewidth=2, linestyle='solid', label='Average Delay', color='purple')
-    ax.fill(angles, values, alpha=0.4, color='purple')
-    ax.yaxis.set_tick_params(labelsize=8)
-    plt.title('Characteristics of Delayed Flights', size=12, pad=40)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    plt.plot(angles, values, linewidth=2, linestyle='solid', label='Average Delay', color='purple')
+    plt.fill(angles, values, alpha=0.4, color='purple')
+    plt.title('Characteristics of Delayed Flights', size=14, pad=20)
+    plt.legend(loc='center', bbox_to_anchor=(1.3, 1.1))
+
+    # Barplot
+    ax2 = plt.subplot(1, 2, 2)
+    sns.barplot(x=cat_counts.values, y=cat_counts.index, palette="viridis", ax=ax2)
+    plt.title("Flight Category Distribution", size=14, pad=20)
+    plt.xlabel("Total Flights")
+    plt.ylabel("")
+    annotate_bars(ax2, zip(cat_counts.values, cat_counts_percentage), use_enumeration=True, offset=5000,
+                  label_format="{:,} flights ({:.2f}%)", color='black', ha='left')
+    plt.tight_layout()
     plt.show()
 
 def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_delay', top_n=10):
@@ -79,6 +92,9 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     common_routes = df[route_column].value_counts().head(top_n)
     common_routes_percentage = (common_routes / df[route_column].count() * 100).round(2)
 
+    # Least Common Routes
+    least_common_routes = df[route_column].value_counts(ascending=True).head(top_n)
+
     # Calculate Average Delay by Route
     average_delay_sorted = df.groupby(route_column)[delay_column].mean().sort_values(ascending=False).reset_index()
     average_delay_sorted.columns = [route_column, 'average_delay']
@@ -92,8 +108,20 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.xlabel('Total Flights')
     plt.ylabel('')
     annotate_bars(ax1, zip(common_routes.values, common_routes_percentage), use_enumeration=True, offset=-500, label_format="{:,} flights ({:.2f}%)")
+    plt.xlim(0, 7000)
     plt.tight_layout()
 
+    # Subplot 2: Least Common Routes
+    ax2 = plt.subplot(1, 2, 2)
+    sns.barplot(x=least_common_routes.values, y=least_common_routes.index, palette='Oranges_d', ax=ax2)
+    plt.title('Top 10 Least Common Routes')
+    plt.xlabel('Total Flights')
+    plt.ylabel('')
+    plt.xlim(0, 7)
+    plt.tight_layout()
+    plt.show()
+
+    """
     # Subplot 2: Routes with Highest Delays
     ax2 = plt.subplot(1, 2, 2)
     sns.barplot(data=average_delay_sorted.head(top_n), x='average_delay', y=route_column, palette='Oranges_d', ax=ax2)
@@ -102,7 +130,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.ylabel('')
     annotate_bars(ax2, average_delay_sorted.head(top_n)['average_delay'].values, use_enumeration=False, offset=-5, label_format="{:.2f} min.")
     plt.tight_layout()
-    plt.show()
+    plt.show()"""
 
     # Boxplot of Delays for Top Routes
     top_routes = df[route_column].value_counts().nlargest(top_n).index
@@ -196,13 +224,12 @@ def plot_time_window(df, time_window_column='dep_time_window', delay_column='dep
     plt.tight_layout()
     plt.show()
 
-def plot_weekly_and_monthly_comparison(df, day_column='sdt', delay_column='dep_delay', palette=None):
+def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=None):
     """
     Plot combined analysis for delays and flight counts by day of the week and month.
 
     Parameters:
     df (pd.DataFrame): The flight data DataFrame.
-    day_column (str): The column containing datetime information.
     delay_column (str): The column containing delay values.
     palette (str): Color palette for the bar plots.
     """
