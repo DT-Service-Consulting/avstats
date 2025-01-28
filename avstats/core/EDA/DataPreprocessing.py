@@ -1,6 +1,10 @@
 # DataPreprocessing.py
+from typing import Tuple
+
 import pandas as pd
 import numpy as np
+from pandas import DataFrame
+
 from avstats.core.EDA.validators.validator_DataProcessing import DataProcessingInput
 
 
@@ -89,8 +93,8 @@ class DataPreprocessing:
             value_counts["column"] = col
             balance_data.append(value_counts)
 
-        # Combine all value counts into a single DataFrame
         balance_df = pd.concat(balance_data, ignore_index=True)
+
         return balance_df
 
     def detect_outliers(self, method="IQR", features=None, threshold=1.5):
@@ -164,6 +168,43 @@ class DataPreprocessing:
 
         return self.df
 
+    def check_time_consistency(self) -> tuple[DataFrame, DataFrame]:
+        """
+        Checks for inconsistencies in time columns (ADT, SDT, AAT, SAT) and flags early departures/arrivals.
+
+        Returns:
+            pd.DataFrame: Subset of the DataFrame with flagged inconsistencies and early departure/arrival indicators.
+        """
+        total_flights = len(self.df)
+
+        # Flag ADT before SDT as "early departures"
+        self.df['early_departure_flag'] = (self.df['adt'] < self.df['sdt']).astype(int)
+        early_departures = self.df[self.df['early_departure_flag'] == 1]
+        early_departures_count = len(early_departures)
+        early_departures_percentage = (early_departures_count / total_flights) * 100
+
+        # Flag AAT before SAT as "early arrivals"
+        self.df['early_arrival_flag'] = (self.df['aat'] < self.df['sat']).astype(int)
+        early_arrivals = self.df[self.df['early_arrival_flag'] == 1]
+        early_arrivals_count = len(early_arrivals)
+        early_arrivals_percentage = (early_arrivals_count / total_flights) * 100
+
+        # Check for ADT after AAT
+        self.df['adt_after_aat_flag'] = (self.df['adt'] > self.df['aat']).astype(int)
+        adt_after_aat = self.df[self.df['adt_after_aat_flag'] == 1]
+        adt_after_aat_count = len(adt_after_aat)
+        adt_after_aat_percentage = (adt_after_aat_count / total_flights) * 100
+
+        # Combine inconsistent rows
+        inconsistent_rows = pd.concat([adt_after_aat])
+
+        # Print summary
+        print(f"Early Departures: {early_departures_count} ({early_departures_percentage:.2f}%)")
+        print(f"Early Arrivals: {early_arrivals_count} ({early_arrivals_percentage:.2f}%)")
+        print(f"Inconsistent ADT > AAT: {adt_after_aat_count} ({adt_after_aat_percentage:.2f}%)")
+
+        return self.df, inconsistent_rows
+
     def preprocess_data(self) -> pd.DataFrame:
         """
         Preprocess the aviation statistics DataFrame by cleaning and engineering features.
@@ -192,4 +233,5 @@ class DataPreprocessing:
         self.df['calc_sft'] = self.df['calc_sft'].fillna((self.df['sat'] - self.df['sdt']) / pd.Timedelta(minutes=1))
         self.df['calc_aft'] = self.df['calc_aft'].fillna((self.df['aat'] - self.df['adt']) / pd.Timedelta(minutes=1))
         self.df.fillna({'airline_iata_code': 'NONE', 'flight_iata_number': 'NONE'}, inplace=True)
+
         return self.df
