@@ -132,6 +132,7 @@ class DataPreprocessing:
         return outliers
 
     def handle_outliers(self, method="remove", features=None, detection_method="IQR", threshold=1.5):
+        outliers = self.detect_outliers(method=detection_method, features=features, threshold=threshold)
         """
         Handle outliers in the dataset.
 
@@ -144,15 +145,15 @@ class DataPreprocessing:
         Returns:
         - pd.DataFrame: Updated DataFrame after handling outliers.
         """
-        outliers = self.detect_outliers(method=detection_method, features=features, threshold=threshold)
-
         for feature, outlier_df in outliers.items():
             if method == "remove":
-                self.df = self.df.drop(outlier_df.index)
+                # Align indices before dropping
+                common_indices = self.df.index.intersection(outlier_df.index)
+                self.df = self.df.drop(common_indices)
             elif method == "cap":
                 if detection_method == "IQR":
                     q1 = self.df[feature].quantile(0.25)
-                    q3= self.df[feature].quantile(0.75)
+                    q3 = self.df[feature].quantile(0.75)
                     iqr = q3 - q1
                     lower_bound = q1 - threshold * iqr
                     upper_bound = q3 + threshold * iqr
@@ -190,18 +191,20 @@ class DataPreprocessing:
         early_arrivals_percentage = (early_arrivals_count / total_flights) * 100
 
         # Check for ADT after AAT
-        self.df['adt_after_aat_flag'] = (self.df['adt'] > self.df['aat']).astype(int)
-        adt_after_aat = self.df[self.df['adt_after_aat_flag'] == 1]
-        adt_after_aat_count = len(adt_after_aat)
-        adt_after_aat_percentage = (adt_after_aat_count / total_flights) * 100
+        self.df['inconsistency_flag'] = (self.df['adt'] > self.df['aat']).astype(int)
+        inconsistent_flights = self.df[self.df['inconsistency_flag'] == 1]
+        inconsistent_flights_count = len(inconsistent_flights)
+        inconsistent_rows = pd.concat([inconsistent_flights])
+        inconsistent_flights_percentage = (inconsistent_flights_count / total_flights) * 100
 
-        # Combine inconsistent rows
-        inconsistent_rows = pd.concat([adt_after_aat])
+        # Remove flights with inconsistent times
+        self.df = self.df[~(self.df['inconsistency_flag'] == 1)]
 
         # Print summary
         print(f"Early Departures: {early_departures_count} ({early_departures_percentage:.2f}%)")
         print(f"Early Arrivals: {early_arrivals_count} ({early_arrivals_percentage:.2f}%)")
-        print(f"Inconsistent ADT > AAT: {adt_after_aat_count} ({adt_after_aat_percentage:.2f}%)")
+        print(f"Inconsistent ADT > AAT: {inconsistent_flights_count} ({inconsistent_flights_percentage:.2f}%)")
+        print(f"Dataset after removing inconsistent flights: {len(self.df)} rows")
 
         return self.df, inconsistent_rows
 

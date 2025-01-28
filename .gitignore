@@ -140,3 +140,4 @@ data/df_weather_encoded.csv
 *.csv
 *.json
 *.csv
+*.csv
