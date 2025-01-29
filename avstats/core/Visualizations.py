@@ -75,6 +75,45 @@ def plot_radar_and_flight_cat(df):
     plt.tight_layout()
     plt.show()
 
+def plot_dep_delay_distribution(df, delay_column='dep_delay'):
+    """
+    Plots the distribution of departure delays with a histogram and a boxplot.
+
+    Parameters:
+    df (pd.DataFrame): The flight data DataFrame.
+    delay_column (str): Column name for the departure delay.
+    """
+    # Filter delays within a reasonable range for better visualization
+    filtered_df = df[(df[delay_column] >= -100) & (df[delay_column] <= 300)]
+    plt.figure(figsize=(16, 4))
+    sns.set_style("whitegrid")
+
+    # Subplot 1: Histogram with KDE for filtered delay distribution
+    plt.subplot(1, 2, 1)
+    sns.histplot(filtered_df[delay_column], bins=50, kde=True, color='darkgreen')
+    plt.title("Distribution of Departure Delays (Filtered)", fontsize=14)
+    plt.xlabel("Departure Delay (mnin.)")
+    plt.ylabel("Amount of Flights")
+
+    # Subplot 2: Boxplot for detecting outliers
+    plt.subplot(1, 2, 2)
+    sns.boxplot(x=filtered_df[delay_column], color='darkorange')
+    plt.title("Boxplot of Departure Delays (Filtered)", fontsize=14)
+    plt.xlabel("Departure Delay (min.)")
+    plt.tight_layout()
+    plt.show()
+
+    # Plot of extreme outliers
+    outliers_df = df[(df[delay_column] < -100) | (df[delay_column] > 300)]
+    if not outliers_df.empty:
+        plt.figure(figsize=(12, 4))
+        sns.histplot(outliers_df[delay_column], bins=50, kde=False, color='darkred')
+        plt.title("Extreme Outliers in Departure Delays", fontsize=14)
+        plt.xlabel("Departure Delay (minutes)")
+        plt.ylabel("Amount of Flights")
+        plt.tight_layout()
+        plt.show()
+
 def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_delay', top_n=10):
     """
     Generalized function to analyze and plot route data including:
@@ -100,7 +139,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     average_delay_sorted.columns = [route_column, 'average_delay']
 
     # Subplot 1: Most Common Routes
-    plt.figure(figsize=(12, 4))
+    plt.figure(figsize=(16, 4))
     sns.set_style("whitegrid")
     ax1 = plt.subplot(1, 2, 1)
     sns.barplot(x=common_routes.values, y=common_routes.index, palette='Greens_d', ax=ax1)
@@ -135,7 +174,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     # Boxplot of Delays for Top Routes
     top_routes = df[route_column].value_counts().nlargest(top_n).index
     filtered_df = df[df[route_column].isin(top_routes)]
-    plt.figure(figsize=(12, 4))
+    plt.figure(figsize=(16, 4))
     sns.boxplot(data=filtered_df, x=route_column, y=delay_column, palette='Purples')
     plt.title('Delay Distribution by Top 10 Routes')
     plt.xlabel('')
@@ -169,7 +208,7 @@ def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay
     print(df_weather_plot['precipitation_level'].value_counts())
 
     # Scatter plot of precipitation vs. delay
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(16, 6))
     plt.subplot(1, 2, 1)
     sns.scatterplot(data=df_weather_plot, x=precipitation_column, y=delay_column, hue='precipitation_level', palette='viridis', alpha=0.7)
     plt.title('Scatter Plot of Precipitation vs. Departure Delay')
@@ -189,6 +228,35 @@ def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay
     plt.tight_layout()
     plt.show()
 
+def plot_scheduled_time_vs_delay(df, time_column='sdt', delay_column='dep_delay'):
+    """
+    Plots the relationship between scheduled departure time and departure delays.
+
+    Parameters:
+    df (pd.DataFrame): The flight data DataFrame.
+    time_column (str): Column name for the scheduled departure time.
+    delay_column (str): Column name for the departure delay.
+    """
+    # Convert scheduled time to datetime and extract the hour
+    df['ScheduledHour'] = pd.to_datetime(df[time_column]).dt.hour
+
+    # Group by hour and calculate the average delay
+    hourly_delays = df.groupby('ScheduledHour')[delay_column].mean().reset_index()
+
+    # Plot the relationship
+    plt.figure(figsize=(16, 4))
+    sns.lineplot(data=hourly_delays, x='ScheduledHour', y=delay_column, marker='o')
+    plt.title("Relationship Between Scheduled Departure Time and Delays", fontsize=14)
+    plt.xlabel("Scheduled Departure Hour (24-hour format)")
+    plt.ylabel("Average Delay (min.)")
+    plt.xticks(range(0, 24))
+    plt.ylim(0, 50)
+    plt.xlim(-1, 24)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    for x, y in zip(hourly_delays['ScheduledHour'], hourly_delays[delay_column]):
+        plt.text(x, y + 2.5, f"{y:.2f}", color='black', ha='center', fontsize=10)
+    plt.tight_layout()
+    plt.show()
 
 def plot_time_window(df, time_window_column='dep_time_window', delay_column='dep_delay', volume_palette=None, delay_palette=None):
     """
