@@ -106,7 +106,7 @@ def plot_dep_delay_distribution(df, delay_column='dep_delay'):
     # Plot of extreme outliers
     outliers_df = df[(df[delay_column] < -100) | (df[delay_column] > 300)]
     if not outliers_df.empty:
-        plt.figure(figsize=(12, 4))
+        plt.figure(figsize=(16, 3))
         sns.histplot(outliers_df[delay_column], bins=50, kde=False, color='darkred')
         plt.title("Extreme Outliers in Departure Delays", fontsize=14)
         plt.xlabel("Departure Delay (minutes)")
@@ -142,7 +142,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.figure(figsize=(16, 4))
     sns.set_style("whitegrid")
     ax1 = plt.subplot(1, 2, 1)
-    sns.barplot(x=common_routes.values, y=common_routes.index, palette='Greens_d', ax=ax1)
+    sns.barplot(x=common_routes.values, y=common_routes.index, palette='Oranges_d', ax=ax1)
     plt.title('Top 10 Most Common Routes')
     plt.xlabel('Total Flights')
     plt.ylabel('')
@@ -152,7 +152,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
 
     # Subplot 2: Least Common Routes
     ax2 = plt.subplot(1, 2, 2)
-    sns.barplot(x=least_common_routes.values, y=least_common_routes.index, palette='Oranges_d', ax=ax2)
+    sns.barplot(x=least_common_routes.values, y=least_common_routes.index, palette='Greens_d', ax=ax2)
     plt.title('Top 10 Least Common Routes')
     plt.xlabel('Total Flights')
     plt.ylabel('')
@@ -175,7 +175,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     top_routes = df[route_column].value_counts().nlargest(top_n).index
     filtered_df = df[df[route_column].isin(top_routes)]
     plt.figure(figsize=(16, 4))
-    sns.boxplot(data=filtered_df, x=route_column, y=delay_column, palette='Purples')
+    sns.boxplot(data=filtered_df, x=route_column, y=delay_column, color='red')
     plt.title('Delay Distribution by Top 10 Routes')
     plt.xlabel('')
     plt.ylabel('Delay (min.)')
@@ -184,6 +184,41 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.tight_layout()
     plt.show()
 
+def plot_airports_with_delays(df, delay_column='dep_delay', top_n=10):
+    """
+    Plots the top airports prone to delays based on average delay time.
+
+    Parameters:
+    df (pd.DataFrame): The flight data DataFrame.
+    delay_column (str): Column name for the delay values.
+    top_n (int): Number of top airports to display in the plot.
+    """
+    # Group by the airport column and calculate the mean delay
+    dep_airport_delays = df.groupby('dep_iata_code')[delay_column].mean().sort_values(ascending=False).head(top_n)
+    arr_airport_delays = df.groupby('arr_iata_code')[delay_column].mean().sort_values(ascending=False).head(top_n)
+
+    plt.figure(figsize=(16, 4))
+    sns.set_style("whitegrid")
+
+    # Create a bar plot for departure airports
+    ax1 = plt.subplot(1, 2, 1)
+    sns.barplot(x=dep_airport_delays.values, y=dep_airport_delays.index, palette='BuPu_d', ax=ax1)
+    ax1.set_title(f"Top {top_n} Departure Airports Prone to Delays", fontsize=14)
+    ax1.set_xlabel("Average Delay (min.)")
+    ax1.set_ylabel("Airport")
+    ax1.grid(axis='x', linestyle='--', alpha=0.7)
+    annotate_bars(ax1, dep_airport_delays.values, offset=1, label_format="{:.2f} min.", color='black', ha='left')
+
+    # Create a bar plot for arrival airports
+    ax2 = plt.subplot(1, 2, 2)
+    sns.barplot(x=arr_airport_delays.values, y=arr_airport_delays.index, palette='PuBu_d', ax=ax2)
+    ax2.set_title(f"Top {top_n} Arrival Airports Prone to Delays", fontsize=14)
+    ax2.set_xlabel("Average Delay (min.)")
+    ax2.set_ylabel("Airport")
+    ax2.grid(axis='x', linestyle='--', alpha=0.7)
+    annotate_bars(ax2, arr_airport_delays.values, offset=1, label_format="{:.2f} min.", color='black', ha='left')
+    plt.tight_layout()
+    plt.show()
 
 def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay_column='dep_delay'):
     """
