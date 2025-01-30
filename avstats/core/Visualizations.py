@@ -92,7 +92,7 @@ def plot_dep_delay_distribution(df, delay_column='dep_delay'):
     plt.subplot(1, 2, 1)
     sns.histplot(filtered_df[delay_column], bins=50, kde=True, color='darkgreen')
     plt.title("Distribution of Departure Delays (Filtered)", fontsize=14)
-    plt.xlabel("Departure Delay (mnin.)")
+    plt.xlabel("Departure Delay (min.)")
     plt.ylabel("Amount of Flights")
 
     # Subplot 2: Boxplot for detecting outliers
@@ -184,6 +184,16 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.tight_layout()
     plt.show()
 
+def plot_distance_vs_delay(df, distance_column='calc_flight_distance_km', delay_column='dep_delay'):
+    plt.figure(figsize=(16, 4))
+    sns.set_style("whitegrid")
+    sns.regplot(data=df, x=distance_column, y=delay_column, scatter_kws={'s': 10, 'alpha': 0.5}, line_kws={'color': 'red'})
+    plt.title("Flight Distance vs. Departure Delay", fontsize=14)
+    plt.xlabel("Flight Distance (km)")
+    plt.ylabel("Departure Delay (min.)")
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.show()
+
 def plot_airports_with_delays(df, delay_column='dep_delay', top_n=10):
     """
     Plots the top airports prone to delays based on average delay time.
@@ -217,6 +227,34 @@ def plot_airports_with_delays(df, delay_column='dep_delay', top_n=10):
     ax2.set_ylabel("Airport")
     ax2.grid(axis='x', linestyle='--', alpha=0.7)
     annotate_bars(ax2, arr_airport_delays.values, offset=1, label_format="{:.2f} min.", color='black', ha='left')
+    plt.tight_layout()
+    plt.show()
+
+def plot_airline_avg_delays(df, delay_column='dep_delay', airline_column='airline_name', top_n=10):
+    # Calculate average delays by airline
+    airline_delays = df.groupby(airline_column)[delay_column].mean().sort_values()
+
+    plt.figure(figsize=(16, 6))
+    sns.set_style("whitegrid")
+
+    # Top airlines with the highest average delays
+    ax1 = plt.subplot(1, 2, 1)
+    sns.barplot(x=airline_delays.tail(top_n).values, y=airline_delays.tail(top_n).index, palette='Reds_d', ax=ax1)
+    ax1.set_title(f"Top {top_n} Airlines with Highest Average Delays", fontsize=14)
+    ax1.set_xlabel("Average Delay (min.)")
+    ax1.set_ylabel("Airline")
+    for i, (value, airline) in enumerate(zip(airline_delays.tail(top_n).values, airline_delays.tail(top_n).index)):
+        ax1.text(value + 1, i, f"{value:.2f} min.", color='black', va='center', fontsize=10)
+
+    # Top airlines with the lowest average delays
+    ax2 = plt.subplot(1, 2, 2)
+    sns.barplot(x=airline_delays.head(top_n).values, y=airline_delays.head(top_n).index, palette='Greens_d', ax=ax2)
+    ax2.set_title(f"Top {top_n} Airlines with Lowest Average Delays", fontsize=14)
+    ax2.set_xlabel("Average Delay (min.)")
+    ax2.set_ylabel("Airline")
+    for i, (value, airline) in enumerate(zip(airline_delays.head(top_n).values, airline_delays.head(top_n).index)):
+        ax2.text(value + 1, i, f"{value:.2f} min.", color='black', va='center', fontsize=10)
+
     plt.tight_layout()
     plt.show()
 
