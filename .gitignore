@@ -141,3 +141,6 @@ data/df_weather_encoded.csv
 *.json
 *.csv
 *.csv
+*.csv
+*.csv
+data/df_vif_passengers.csv

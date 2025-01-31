@@ -227,6 +227,9 @@ class DataPreprocessing:
         self.df.loc[mask, 'dep_delay'] = (self.df['adt'] - self.df['sdt']).dt.total_seconds() / 60
         self.df['dep_delay'] = self.df['dep_delay'].fillna(0)
 
+        # Set negative delays to zero
+        self.df['dep_delay'] = self.df['dep_delay'].clip(lower=0)
+
         # Impute other missing values
         self.df['adt'] = self.df['adt'].fillna(self.df['sdt'] + pd.to_timedelta(self.df['dep_delay'], unit='m'))
         self.df['aat'] = self.df['aat'].fillna(self.df['sat'] + pd.to_timedelta(self.df['dep_delay'], unit='m'))

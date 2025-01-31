@@ -75,6 +75,25 @@ def plot_radar_and_flight_cat(df):
     plt.tight_layout()
     plt.show()
 
+def plot_private_vs_commercial(df, delay_column='dep_delay', category_column='flight_cat'):
+    """
+    Plots a boxplot comparing departure delays for different flight categories:
+    Commercial, Cargo, and Private.
+
+    Parameters:
+    df (pd.DataFrame): The flight data DataFrame.
+    delay_column (str): Column name for delay values.
+    category_column (str): Column name for flight categories (e.g., 'flight_cat').
+    """
+    plt.figure(figsize=(16, 4))
+    sns.set_style("whitegrid")
+    sns.boxplot(data=df, x=category_column, y=delay_column, palette='Set2')
+    plt.title("Flight Categories: Departure Delays", fontsize=14)
+    plt.xlabel("Flight Category")
+    plt.ylabel("Departure Delay (min.)")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.show()
+
 def plot_dep_delay_distribution(df, delay_column='dep_delay'):
     """
     Plots the distribution of departure delays with a histogram and a boxplot.
@@ -109,7 +128,7 @@ def plot_dep_delay_distribution(df, delay_column='dep_delay'):
         plt.figure(figsize=(16, 3))
         sns.histplot(outliers_df[delay_column], bins=50, kde=False, color='darkred')
         plt.title("Extreme Outliers in Departure Delays", fontsize=14)
-        plt.xlabel("Departure Delay (minutes)")
+        plt.xlabel("Departure Delay (min.)")
         plt.ylabel("Amount of Flights")
         plt.tight_layout()
         plt.show()
