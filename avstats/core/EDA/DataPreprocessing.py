@@ -237,4 +237,8 @@ class DataPreprocessing:
         self.df['calc_aft'] = self.df['calc_aft'].fillna((self.df['aat'] - self.df['adt']) / pd.Timedelta(minutes=1))
         self.df.fillna({'airline_iata_code': 'NONE', 'flight_iata_number': 'NONE'}, inplace=True)
 
+        # Convert negative calc_sft and calc_aft to positive values
+        self.df['calc_sft'] = self.df['calc_sft'].abs()
+        self.df['calc_aft'] = self.df['calc_aft'].abs()
+
         return self.df
