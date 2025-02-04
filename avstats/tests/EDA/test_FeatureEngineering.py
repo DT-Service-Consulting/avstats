@@ -1,8 +1,8 @@
 import pytest
-from avstats.core.EDA.FeatureEngineering import NewFeatures
+from avstats.core.EDA.FeatureEngineering import FeatureEngineering
 
 
-class TestNewFeatures:
+class TestFeatureEngineering:
     @pytest.mark.parametrize("cargo, private, expected", [
         (True, False, 'Cargo'),
         (False, True, 'Private'),
@@ -10,7 +10,7 @@ class TestNewFeatures:
         (True, True, 'Cargo')  # Assuming cargo takes precedence
     ])
     def test_categorize_flight(self, cargo, private, expected):
-        assert NewFeatures.categorize_flight(cargo, private) == expected
+        assert FeatureEngineering.categorize_flight(cargo, private) == expected
 
     @pytest.mark.parametrize("hour, expected", [
         (0, 'Morning'),
@@ -24,11 +24,11 @@ class TestNewFeatures:
         (23, 'Evening')
     ])
     def test_get_time_window(self, hour, expected):
-        assert NewFeatures.get_time_window(hour) == expected
+        assert FeatureEngineering.get_time_window(hour) == expected
 
     def test_get_time_window_invalid_hour(self):
         with pytest.raises(ValueError):
-            NewFeatures.get_time_window(-1)
+            FeatureEngineering.get_time_window(-1)
         with pytest.raises(ValueError):
-            NewFeatures.get_time_window(24)
+            FeatureEngineering.get_time_window(24)
 

@@ -33,7 +33,7 @@ def plot_dep_delay_distribution(df, delay_filter=300, histogram_title='', boxplo
     """
     # Filter delays within a reasonable range for better visualization
     filtered_df = df[(df[delay_column] >= -100) & (df[delay_column] <= delay_filter)]
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
 
     # Subplot 1: Histogram with KDE for filtered delay distribution
@@ -54,7 +54,7 @@ def plot_dep_delay_distribution(df, delay_filter=300, histogram_title='', boxplo
     # Plot of extreme outliers
     outliers_df = df[(df[delay_column] < -100) | (df[delay_column] > 300)]
     if not outliers_df.empty:
-        plt.figure(figsize=(16, 3))
+        plt.figure(figsize=(12, 3))
         sns.histplot(outliers_df[delay_column], bins=50, kde=False, color='darkred')
         plt.title("Extreme Outliers in Departure Delays", fontsize=14)
         plt.xlabel("Departure Delay (min.)")
@@ -92,7 +92,7 @@ def plot_radar_and_flight_cat(df):
     angles = [n / float(len(labels)) * 2 * pi for n in range(len(labels))]
     angles += angles[:1]
 
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
 
     # Radar chart
@@ -124,7 +124,7 @@ def plot_category_comparison(df, delay_column='dep_delay', category_column='flig
     delay_column (str): Column name for delay values.
     category_column (str): Column name for flight categories (e.g., 'flight_cat').
     """
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
     sns.boxplot(data=df, x=category_column, y=delay_column, palette='Set2')
     plt.title("Flight Categories: Departure Delays", fontsize=14)
@@ -133,7 +133,7 @@ def plot_category_comparison(df, delay_column='dep_delay', category_column='flig
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.show()
 
-def performance_summary_and_plot(df):
+def plot_flight_performance(df):
     """
     Calculate flight performance and plot the overall performance, including flight counts and percentages.
 
@@ -154,7 +154,7 @@ def performance_summary_and_plot(df):
     metric_names = list(overall_metrics.keys())
     metric_values = list(overall_metrics.values())
 
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
     ax = sns.barplot(x=metric_values, y=metric_names, palette="viridis")
     plt.xlabel("Percentage (%)")
@@ -222,7 +222,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     average_delay_sorted.columns = [route_column, 'average_delay']
 
     # Subplot 1: Most Common Routes
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
     ax1 = plt.subplot(1, 2, 1)
     sns.barplot(x=common_routes.values, y=common_routes.index, color='#fdb462', ax=ax1)
@@ -257,7 +257,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     # Boxplot of Delays for Top Routes
     top_routes = df[route_column].value_counts().nlargest(top_n).index
     filtered_df = df[df[route_column].isin(top_routes)]
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.boxplot(data=filtered_df, x=route_column, y=delay_column, color='#d53e4f')
     plt.title('Delay Distribution by Top 10 Routes')
     plt.xlabel('')
@@ -267,7 +267,7 @@ def plot_route_analysis(df, route_column='route_iata_code', delay_column='dep_de
     plt.show()
 
 def plot_distance_vs_delay(df, distance_column='calc_flight_distance_km', delay_column='dep_delay'):
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
     sns.regplot(data=df, x=distance_column, y=delay_column, scatter_kws={'s': 10, 'alpha': 0.5}, line_kws={'color': 'red'})
     plt.title("Flight Distance vs. Departure Delay", fontsize=14)
@@ -289,7 +289,7 @@ def plot_airports_with_delays(df, delay_column='dep_delay', top_n=10):
     dep_airport_delays = df.groupby('dep_iata_code')[delay_column].mean().sort_values(ascending=False).head(top_n)
     arr_airport_delays = df.groupby('arr_iata_code')[delay_column].mean().sort_values(ascending=False).head(top_n)
 
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
 
     # Create a bar plot for departure airports
@@ -316,7 +316,7 @@ def plot_airline_avg_delays(df, delay_column='dep_delay', airline_column='airlin
     # Calculate average delays by airline
     airline_delays = df.groupby(airline_column)[delay_column].mean().sort_values()
 
-    plt.figure(figsize=(16, 6))
+    plt.figure(figsize=(12, 6))
     sns.set_style("whitegrid")
 
     # Top airlines with the highest average delays
@@ -363,7 +363,7 @@ def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay
     print(df_weather_plot['precipitation_level'].value_counts())
 
     # Scatter plot of precipitation vs. delay
-    plt.figure(figsize=(16, 6))
+    plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
     sns.scatterplot(data=df_weather_plot, x=precipitation_column, y=delay_column, hue='precipitation_level', palette='viridis', alpha=0.7)
     plt.title('Scatter Plot of Precipitation vs. Departure Delay')
@@ -399,7 +399,7 @@ def plot_scheduled_time_vs_delay(df, time_column='sdt', delay_column='dep_delay'
     hourly_delays = df.groupby('ScheduledHour')[delay_column].mean().reset_index()
 
     # Plot the relationship
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(12, 4))
     sns.lineplot(data=hourly_delays, x='ScheduledHour', y=delay_column, marker='o')
     plt.title("Relationship Between Scheduled Departure Time and Delays", fontsize=14)
     plt.xlabel("Scheduled Departure Hour (24-hour format)")
@@ -424,7 +424,7 @@ def plot_time_window(df, time_window_column='dep_time_window', delay_column='dep
     volume_palette (str): Color palette for the flight volume plot.
     delay_palette (str): Color palette for the delay plot.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(16, 3))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 3))
 
     # Flight Volume by Time of Day
     flight_summary = df.groupby(time_window_column)['uuid'].count()
@@ -465,14 +465,14 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     monthly_flight_counts = df['Month'].value_counts().sort_index()
 
     # Create figure with 4 subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
 
     # Plot 1: Average delays by day of the week
     sns.barplot(x=weekday_delays.index, y=weekday_delays.values, palette=palette, ax=axes[0, 0])
     axes[0, 0].set_title('Average Delays by Day of the Week')
     axes[0, 0].set_ylabel('Average Delay (min.)')
     for index, value in enumerate(weekday_delays.values):
-        axes[0, 0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=10)
+        axes[0, 0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=9)
     axes[0, 0].set_ylim(0, 40)
 
     # Plot 2: Total flights by day of the week
@@ -480,7 +480,7 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     axes[0, 1].set_title('Total Flights by Day of the Week')
     axes[0, 1].set_ylabel('Total Flights')
     for index, value in enumerate(weekday_flight_counts.values):
-        axes[0, 1].text(index, value - 3500, f"{value:,}", color='white', ha='center', fontsize=10)
+        axes[0, 1].text(index, value - 3500, f"{value:,}", color='white', ha='center', fontsize=9)
     axes[0, 1].set_ylim(0, weekday_flight_counts.max() + 20000)
 
     # Plot 3: Average delays by month
