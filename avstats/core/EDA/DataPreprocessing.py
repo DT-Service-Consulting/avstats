@@ -174,15 +174,14 @@ class DataPreprocessing:
                 iqr = q3 - q1
                 lower_bound = q1 - threshold * iqr
                 upper_bound = q3 + threshold * iqr
-                print(
-                    f"Feature: {feature}, Q1: {q1}, Q3: {q3}, IQR: {iqr}, Lower Bound: {lower_bound}, Upper Bound: {upper_bound}")
+                #print(f"Feature: {feature}, Q1: {q1}, Q3: {q3}, IQR: {iqr}, Lower Bound: {lower_bound}, Upper Bound: {upper_bound}")
                 mask = (self.df[feature] < lower_bound) | (self.df[feature] >= upper_bound)
             elif method == "z-score":
                 mean = self.df[feature].mean()
                 std = self.df[feature].std()
                 z_scores = np.abs((self.df[feature] - mean) / std)
                 mask = z_scores > threshold
-                print(f"Feature: {feature}, Mean: {mean}, Std: {std}, Z-Score Threshold: {threshold}")
+                #print(f"Feature: {feature}, Mean: {mean}, Std: {std}, Z-Score Threshold: {threshold}")
 
             outliers[feature] = self.df[mask]
 

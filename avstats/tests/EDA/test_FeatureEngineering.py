@@ -31,4 +31,3 @@ class TestFeatureEngineering:
             FeatureEngineering.get_time_window(-1)
         with pytest.raises(ValueError):
             FeatureEngineering.get_time_window(24)
-

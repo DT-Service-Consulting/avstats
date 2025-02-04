@@ -143,4 +143,5 @@ data/df_weather_encoded.csv
 *.csv
 *.csv
 *.csv
-data/df_vif_passengers.csv
+data/data_for_machine_learning/df_vif_passengers.csv
+*.csv

@@ -155,7 +155,8 @@ class TimeSeriesAnalysis:
 
         # Fit SARIMAX or ARIMA based on seasonal_order
         if seasonal_order:
-            model = SARIMAX(train_data, order=order, seasonal_order=seasonal_order).fit(disp=False)
+            model = SARIMAX(train_data, order=order, seasonal_order=seasonal_order,
+                            enforce_invertibility=False).fit(disp=False, maxiter=500, method="powell")
             title = "SARIMAX Forecast vs Actual"
         else:
             model = ARIMA(train_data, order=order).fit()
