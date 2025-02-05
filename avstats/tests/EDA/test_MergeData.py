@@ -37,7 +37,10 @@ def sample_data():
         'wpgt_arr': [2.5, 3.5, 1.5, None],
         'pres_arr': [1014, 1012, 1011, None],
         'tsun_arr': [110, 210, 310, None],
-        'sdt': ['2023-12-01T08:00:00', '2023-12-01T12:00:00', '2023-12-02T18:00:00', '2023-12-02T20:00:00']
+        'sdt': ['2023-12-01T08:00:00', '2023-12-01T12:00:00', '2023-12-02T18:00:00', '2023-12-02T20:00:00'],
+        'season': ['Winter', 'Winter', 'Autumn', 'Autumn'],
+        'temp_diff': [2.0, -1.0, 3.5, None],
+        'wind_speed_diff': [1.0, -0.5, 2.0, None]
     }
     return pd.DataFrame(data)
 
@@ -98,4 +101,3 @@ def test_aggregate_passengers(sample_data):
     assert 'total_passengers' in merged_df.columns
     assert merged_df.loc[merged_df['route_iata_code'] == 'AA101', 'total_passengers'].iloc[0] == 100
     assert merged_df.loc[merged_df['route_iata_code'] == 'BB202', 'total_passengers'].iloc[0] == 200
-

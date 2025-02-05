@@ -88,8 +88,8 @@ class MergeData:
 
             # Delays and on-time flights
             'total_dep_delay': ('dep_delay', 'sum'),
-            'total_dep_delay_15': ('dep_delay_15', 'mean'),
-            'total_on_time_15': ('on_time_15', 'mean'),
+            'total_dep_delay_15': ('dep_delay_15', 'sum'),
+            'total_on_time_15': ('on_time_15', 'sum'),
 
             # Delay categories
             'short_delay': ('dep_delay_cat', lambda x: np.sum(x == 'Short')),

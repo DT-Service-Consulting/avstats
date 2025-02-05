@@ -87,10 +87,17 @@ def test_handle_outliers_remove(sample_dataframe):
     df["dep_delay"] = [15, 500]  # Introduce an extreme outlier
     processor = DataPreprocessing(df, unique_column="flight_iata_number")
 
-    df_cleaned = processor.handle_outliers(method="remove", features=["dep_delay"], detection_method="IQR", threshold=0.5)
+    df_cleaned, removed_percentage = processor.handle_outliers(
+        method="remove", features=["dep_delay"], detection_method="IQR", threshold=0.5
+    )
 
-    assert 500 not in df_cleaned["dep_delay"].values  # Ensure outlier is removed
-    assert len(df_cleaned) < len(df)  # Ensure a row is removed
+    # Debugging: Print results
+    print(f"Original DF size: {len(df)}, Cleaned DF size: {len(df_cleaned)}, Removed %: {removed_percentage:.2f}%")
+    print(f"Remaining dep_delay values: {df_cleaned['dep_delay'].values}")
+
+    # Ensure outlier is removed
+    assert 500 not in df_cleaned["dep_delay"].values, "Outlier 500 was not removed."
+    assert len(df_cleaned) < len(df), "No rows were removed when they should have been."
 
 
 def test_handle_outliers_cap(sample_dataframe):
@@ -99,19 +106,17 @@ def test_handle_outliers_cap(sample_dataframe):
     df["dep_delay"] = [15, 500]  # Introduce an extreme outlier
     processor = DataPreprocessing(df, unique_column="flight_iata_number")
 
-    # Use modified detection logic that correctly caps values
-    df_capped = processor.handle_outliers(method="cap", features=["dep_delay"], detection_method="IQR", threshold=0.5)
-    print(f"Capped DataFrame:\n{df_capped}")
+    df_capped, _ = processor.handle_outliers(method="cap", features=["dep_delay"], detection_method="IQR", threshold=0.5)
 
-    # Expected upper bound
     q1 = df["dep_delay"].quantile(0.25)
     q3 = df["dep_delay"].quantile(0.75)
     iqr = q3 - q1
     raw_upper_bound = q3 + 0.5 * iqr
     expected_upper_bound = np.nextafter(raw_upper_bound, -np.inf)
 
-    assert 500 not in df_capped["dep_delay"].values  # Ensure outlier is capped
-    assert math.isclose(df_capped["dep_delay"].max(), expected_upper_bound, rel_tol=1e-6)
+    assert 500 not in df_capped["dep_delay"].values, "Outlier 500 was not capped."
+    assert math.isclose(df_capped["dep_delay"].max(), expected_upper_bound, rel_tol=1e-12), (
+        f"Max value {df_capped['dep_delay'].max()} does not match expected {expected_upper_bound} within tolerance.")
 
 
 def test_check_time_consistency(sample_dataframe):
