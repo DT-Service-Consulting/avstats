@@ -41,6 +41,8 @@ class MergeData:
             is_monthly = True
         else:
             self.df['Date'] = self.df['sdt'].dt.date
+            self.df['day_of_week'] = self.df['sdt'].dt.dayofweek
+            self.df['month'] = self.df['sdt'].dt.month
             group_by_col = 'Date'
             is_monthly = False
 
@@ -65,6 +67,10 @@ class MergeData:
             'wpgt_arr': ('wpgt_arr', 'mean' if is_monthly else 'first'),
             'pres_arr': ('pres_arr', 'mean' if is_monthly else 'first'),
             'tsun_arr': ('tsun_arr', 'sum' if is_monthly else 'first'),
+
+            # Departure and Arrival difference
+            'temp_diff': ('temp_diff', 'mean' if is_monthly else 'first'),
+            'wind_speed_diff': ('wind_speed_diff', 'mean' if is_monthly else 'first'),
         }
 
         # Build the aggregation dictionary
@@ -82,8 +88,8 @@ class MergeData:
 
             # Delays and on-time flights
             'total_dep_delay': ('dep_delay', 'sum'),
-            'total_dep_delay_15': ('dep_delay_15', 'sum'),
-            'total_on_time_15': ('on_time_15', 'sum'),
+            'total_dep_delay_15': ('dep_delay_15', 'mean'),
+            'total_on_time_15': ('on_time_15', 'mean'),
 
             # Delay categories
             'short_delay': ('dep_delay_cat', lambda x: np.sum(x == 'Short')),
@@ -109,6 +115,12 @@ class MergeData:
             'morning_arr': ('arr_time_window', lambda x: np.sum(x == 'Morning')),
             'afternoon_arr': ('arr_time_window', lambda x: np.sum(x == 'Afternoon')),
             'evening_arr': ('arr_time_window', lambda x: np.sum(x == 'Evening')),
+
+            # Season
+            'winter': ('season', lambda x: np.sum(x == 'Winter')),
+            'spring': ('season', lambda x: np.sum(x == 'Spring')),
+            'summer': ('season', lambda x: np.sum(x == 'Summer')),
+            'autumn': ('season', lambda x: np.sum(x == 'Autumn')),
         }
 
         # Update the aggregation dictionary with weather logic dynamically

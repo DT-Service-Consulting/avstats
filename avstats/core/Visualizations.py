@@ -23,7 +23,7 @@ def annotate_bars(ax, data, use_enumeration=False, offset=0, label_format="{:.2f
         for i, v in enumerate(data):
             ax.text(v + offset, i, label_format.format(v), color=color, ha=ha, va='center', fontsize=10)
 
-def plot_dep_delay_distribution(df, delay_filter=300, histogram_title='', boxplot_title='', delay_column='dep_delay'):
+def plot_dep_delay_distribution(df, delay_filter=300, histogram_title='', boxplot_title='', delay_column='dep_delay', bins_per_unit=5):
     """
     Plots the distribution of departure delays with a histogram and a boxplot.
 
@@ -36,9 +36,13 @@ def plot_dep_delay_distribution(df, delay_filter=300, histogram_title='', boxplo
     plt.figure(figsize=(12, 4))
     sns.set_style("whitegrid")
 
+    # Bin number
+    data_range = filtered_df[delay_column].max() - filtered_df[delay_column].min()
+    num_bins = int(data_range * bins_per_unit)
+
     # Subplot 1: Histogram with KDE for filtered delay distribution
     plt.subplot(1, 2, 1)
-    sns.histplot(filtered_df[delay_column], bins=50, kde=True, color='darkgreen')
+    sns.histplot(filtered_df[delay_column], bins=num_bins, kde=True, color='darkgreen')
     plt.title(f"Distribution of Departure Delays {histogram_title}", fontsize=14)
     plt.xlabel("Departure Delay (min.)")
     plt.ylabel("Amount of Flights")
@@ -340,24 +344,23 @@ def plot_airline_avg_delays(df, delay_column='dep_delay', airline_column='airlin
     plt.tight_layout()
     plt.show()
 
-def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay_column='dep_delay'):
+def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay_category_column='dep_delay_cat'):
     """
     Analyzes and visualizes the impact of precipitation on delays.
 
     Parameters:
     df_weather (pd.DataFrame): DataFrame containing weather and delay data.
     precipitation_column (str): Column name for precipitation levels.
-    delay_column (str): Column name for delays.
+    delay_category_column (str): Column name for delay categories.
     """
+    # Define bins and labels for precipitation levels
     bins = [-0.1, 0, 10, 30, float('inf')]
-    delay_labels = ['On-Time', 'Moderate', 'Severe']
     labels = ['No Precipitation', 'Light Rain', 'Moderate Rain', 'Heavy Rain']
 
     df_weather_plot = df_weather.copy()
 
     # Categorize precipitation levels
     df_weather_plot['precipitation_level'] = pd.cut(df_weather_plot[precipitation_column], bins=bins, labels=labels, include_lowest=True)
-    df_weather_plot['delay_category'] = pd.cut(df_weather_plot[delay_column], bins=[-float('inf'), 15, 60, float('inf')], labels=delay_labels)
 
     print("Distribution of Precipitation Levels:")
     print(df_weather_plot['precipitation_level'].value_counts())
@@ -365,18 +368,17 @@ def plot_precipitation_impact(df_weather, precipitation_column='prcp_dep', delay
     # Scatter plot of precipitation vs. delay
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
-    sns.scatterplot(data=df_weather_plot, x=precipitation_column, y=delay_column, hue='precipitation_level', palette='viridis', alpha=0.7)
+    sns.scatterplot(data=df_weather_plot, x=precipitation_column, y='dep_delay', hue='precipitation_level', palette='viridis', alpha=0.7)
     plt.title('Scatter Plot of Precipitation vs. Departure Delay')
     plt.xlabel('Precipitation (mm)')
     plt.ylabel('Delay (min.)')
     plt.legend(title='Precipitation Level')
     plt.xlim(-5, 100)
-    plt.ylim(-1000, 2000)
     plt.tight_layout()
 
     # Bar plot of delay categories by precipitation level
     plt.subplot(1, 2, 2)
-    sns.countplot(data=df_weather_plot, x='delay_category', hue='precipitation_level', palette='viridis')
+    sns.countplot(data=df_weather_plot, x=delay_category_column, hue='precipitation_level', palette='viridis')
     plt.title('Delay Categories by Precipitation Level')
     plt.xlabel('Delay Category')
     plt.ylabel('Count')
@@ -472,7 +474,7 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     axes[0, 0].set_title('Average Delays by Day of the Week')
     axes[0, 0].set_ylabel('Average Delay (min.)')
     for index, value in enumerate(weekday_delays.values):
-        axes[0, 0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=9)
+        axes[0, 0].text(index, value - 3, f"{value:.2f} min.", color='white', ha='center', fontsize=8)
     axes[0, 0].set_ylim(0, 40)
 
     # Plot 2: Total flights by day of the week
@@ -480,7 +482,7 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     axes[0, 1].set_title('Total Flights by Day of the Week')
     axes[0, 1].set_ylabel('Total Flights')
     for index, value in enumerate(weekday_flight_counts.values):
-        axes[0, 1].text(index, value - 3500, f"{value:,}", color='white', ha='center', fontsize=9)
+        axes[0, 1].text(index, value - 3500, f"{value:,}", color='white', ha='center', fontsize=8)
     axes[0, 1].set_ylim(0, weekday_flight_counts.max() + 20000)
 
     # Plot 3: Average delays by month
@@ -490,7 +492,7 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     axes[1, 0].set_xticklabels(monthly_delays.index.astype(str), rotation=45)
     axes[1, 0].set_ylim(0, 50)
     for x, y in zip(monthly_delays.index.astype(str), monthly_delays.values):
-        axes[1, 0].text(x, y + 1.5, f"{y:.2f}", color='black', ha='center', fontsize=10)
+        axes[1, 0].text(x, y + 1.5, f"{y:.2f}", color='black', ha='center', fontsize=9)
 
     # Plot 4: Total flights by month
     sns.lineplot(x=monthly_flight_counts.index.astype(str), y=monthly_flight_counts.values, marker='o', ax=axes[1, 1])
@@ -499,7 +501,7 @@ def plot_weekly_and_monthly_comparison(df, delay_column='dep_delay', palette=Non
     axes[1, 1].set_xticklabels(monthly_flight_counts.index.astype(str), rotation=45)
     axes[1, 1].set_ylim(0, 55000)
     for x, y in zip(monthly_flight_counts.index.astype(str), monthly_flight_counts.values):
-        axes[1, 1].text(x, y + 2000, f"{y:,}", color='black', ha='center', fontsize=10)
+        axes[1, 1].text(x, y + 2000, f"{y:,}", color='black', ha='center', fontsize=9)
 
     plt.subplots_adjust(wspace=0.3, hspace=0.4)
     plt.tight_layout()

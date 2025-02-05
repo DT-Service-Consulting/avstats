@@ -200,6 +200,7 @@ class DataPreprocessing:
         Returns:
         - pd.DataFrame: Updated DataFrame after handling outliers.
         """
+        original_count = len(self.df)
         outliers = self.detect_outliers(method=detection_method, features=features, threshold=threshold)
         for feature, outlier_df in outliers.items():
             if method == "remove":
@@ -223,7 +224,10 @@ class DataPreprocessing:
 
                 self.df[feature] = self.df[feature].apply(lambda x: upper_bound if x >= upper_bound else (lower_bound if x <= lower_bound else x))
 
-        return self.df
+        updated_count = len(self.df)  # Count rows after outlier handling
+        removed_percentage = ((original_count - updated_count) / original_count) * 100
+
+        return self.df, removed_percentage
 
     def check_data_balance(self) -> pd.DataFrame:
         """
