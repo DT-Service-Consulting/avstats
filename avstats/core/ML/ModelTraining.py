@@ -1,10 +1,13 @@
 # core/ML/ModelTraining.py
 import seaborn as sns
+import xgboost as xgb
+from typing import Tuple
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
-from typing import Tuple
-from avstats.core.ML.ModelEvaluation import *
+from sklearn.svm import SVR
+from sklearn.ensemble import GradientBoostingRegressor
 from statsmodels.regression.linear_model import RegressionResults
+from avstats.core.ML.ModelEvaluation import *
 from avstats.core.ML.validators.validator_ModelTraining import ModelTrainingInput
 
 
@@ -34,7 +37,10 @@ class ModelTraining:
         self.models = {
             "Linear Regression": self.train_linear_model,
             "Decision Tree": self.train_decision_tree,
-            "Random Forest": self.train_random_forest
+            "Random Forest": self.train_random_forest,
+            "SVR": self.train_svr,
+            "Gradient Boosting": self.train_gbm,
+            "XGBoost": self.train_xgboost
         }
 
     def train_linear_model(self) -> tuple[RegressionResults, np.ndarray]:
@@ -76,6 +82,30 @@ class ModelTraining:
         Tuple[RandomForestRegressor, np.ndarray]: Trained Random Forest Regressor model and predicted values for x_test.
         """
         self.model = RandomForestRegressor(n_estimators=200, random_state=42)
+        self.model.fit(self.x_train, self.y_train)
+        self.y_pred = self.model.predict(self.x_test)
+
+        return self.model, self.y_pred
+
+    def train_svr(self) -> Tuple[SVR, np.ndarray]:
+        """ Trains Support Vector Regression (SVR) model. """
+        self.model = SVR(kernel='rbf', C=100, gamma=0.1, epsilon=0.1)
+        self.model.fit(self.x_train, self.y_train)
+        self.y_pred = self.model.predict(self.x_test)
+
+        return self.model, self.y_pred
+
+    def train_gbm(self) -> Tuple[GradientBoostingRegressor, np.ndarray]:
+        """ Trains a Gradient Boosting Machine (GBM) model. """
+        self.model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.05, max_depth=5, random_state=42)
+        self.model.fit(self.x_train, self.y_train)
+        self.y_pred = self.model.predict(self.x_test)
+
+        return self.model, self.y_pred
+
+    def train_xgboost(self) -> Tuple[xgb.XGBRegressor, np.ndarray]:
+        """ Trains an XGBoost model. """
+        self.model = xgb.XGBRegressor(n_estimators=200, learning_rate=0.05, max_depth=5, random_state=42)
         self.model.fit(self.x_train, self.y_train)
         self.y_pred = self.model.predict(self.x_test)
 

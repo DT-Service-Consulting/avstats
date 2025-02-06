@@ -149,6 +149,7 @@ def plot_combined(model_name, actual, predicted, residuals=None):
     plt.tight_layout()
     plt.show()
 
+
 def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -> None:
     """
     Plot model performance metrics (MAE, RMSE, and MAPE) as bar charts.
@@ -166,19 +167,35 @@ def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -
         None: The function displays the plots directly.
     """
     df = pd.DataFrame(evaluation_results).set_index("Model")
-    df[['MAE (min.)', 'RMSE (min.)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
-    plt.title('Model Performance (MAE and RMSE)')
-    plt.ylabel('(min.)')
-    plt.xlabel('')
-    plt.xticks(rotation=0, horizontalalignment='center')  # Rotate labels for better readability
-    plt.legend(title="Metrics")
+
+    # Sort the metrics for MAE and RMSE in ascending order
+    sorted_metrics = df[['MAE (min.)', 'RMSE (min.)']].sort_values(by=['MAE (min.)', 'RMSE (min.)'])
+
+    # Plot MAE and RMSE
+    fig1, ax1 = plt.subplots(figsize=(14, 6))
+    sorted_metrics.plot(kind='bar', ax=ax1, alpha=0.7)
+    ax1.set_title('Model Performance (MAE and RMSE)', fontsize=14)
+    ax1.set_ylabel('(min.)', fontsize=12)
+    ax1.set_xlabel('')
+    ax1.set_xticklabels(ax1.get_xticklabels(), rotation=0, horizontalalignment='center', fontsize=12)
+    ax1.legend(title="Metrics")
+    plt.tight_layout()
     plt.show()
 
-    df[['MAPE (%)']].plot(kind='bar', figsize=(12, 4), alpha=0.7)
-    plt.title('Model Performance (MAPE)')
-    plt.ylabel('(%)')
-    plt.xlabel('')
-    plt.ylim(0, 100)  # Set y-axis range from 0 to 100
-    plt.xticks(rotation=0, horizontalalignment='center')  # Rotate labels for better readability
-    plt.legend(title="Metrics")
+    # Sort the MAPE metric in ascending order
+    sorted_mape = df[['MAPE (%)']].sort_values(by='MAPE (%)')
+
+    # Plot MAPE
+    fig2, ax2 = plt.subplots(figsize=(14, 6))
+    sorted_mape.plot(kind='bar', ax=ax2, alpha=0.7)
+    ax2.set_title('Model Performance (MAPE)', fontsize=14)
+    ax2.set_ylabel('(%)', fontsize=12)
+    ax2.set_xlabel('')
+    ax2.set_ylim(0, 100)  # Set y-axis range from 0 to 100
+    ax2.set_xticklabels(ax2.get_xticklabels(), rotation=0, horizontalalignment='center', fontsize=12)
+    ax2.legend(title="Metrics")
+    for bar in ax2.patches:
+        ax2.annotate(f"{bar.get_height():.2f}%", (bar.get_x() + bar.get_width() / 2, bar.get_height()), ha='center',
+                     va='bottom', fontsize=10, color='black')
+    plt.tight_layout()
     plt.show()
