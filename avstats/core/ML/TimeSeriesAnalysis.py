@@ -2,13 +2,13 @@
 import pandas as pd
 import numpy as np
 from numpy import ndarray, dtype
-from pandas import Series, DataFrame
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA, ARIMAResults
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from prophet import Prophet
 from datetime import timedelta, datetime
-from typing import Tuple, Optional, List, Union, Any, Dict
+from typing import Tuple, Optional, List, Union, Any
 from avstats.core.ML.ModelEvaluation import *
 from avstats.core.ML.validators.validator_TimeSeriesAnalysis import TimeSeriesAnalysisInput
 
@@ -118,19 +118,31 @@ class TimeSeriesAnalysis:
         plt.title("PACF Plot")
         plt.tight_layout()
 
-    def plot_forecast(self, predictions: pd.Series, title: str, metrics) -> None:
+    def plot_forecast(self, predictions: pd.Series, title: str, metrics, prophet_column=None, prophet_plot=False) -> None:
         """
         Plot actual vs predicted values.
 
         Args:
+            prophet_plot:
+            prophet_column:
             predictions (pd.Series): Predicted values.
             title (str): Title of the plot.
+            metrics (dict): Evaluation metrics to display.
         """
         plt.figure(figsize=(12, 4))
-        plt.plot(self.df[self.column], label='Actual')
-        plt.plot(predictions, label='Predicted', color='orange')
-        for month in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
-            plt.axvline(month, color='k', linestyle='--', alpha=0.2)
+        if prophet_plot:
+            plt.plot(self.df['ds'], self.df[prophet_column], label='Actual')
+            plt.plot(predictions.index, predictions, label='Predicted', color='orange')
+            plt.xticks(rotation=45)
+
+            # Format the x-axis with proper dates
+            plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m'))
+            plt.gca().xaxis.set_major_locator(plt.matplotlib.dates.MonthLocator())
+        else:
+            plt.plot(self.df[self.column], label='Actual')
+            plt.plot(predictions, label='Predicted', color='orange')
+            for month in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
+                plt.axvline(month, color='k', linestyle='--', alpha=0.2)
         plt.title(title)
         plt.ylabel('Flights')
         metrics_box(metrics)
@@ -215,3 +227,68 @@ class TimeSeriesAnalysis:
             self.df[self.column]) - forecast_steps + 1]),title="Rolling Forecast vs Actual", metrics=metrics)
 
         return rolling_actual, rolling_predictions, residuals, metrics
+
+    def prophet_forecast(self, periods, frequency='D'):
+        """
+        Perform forecasting using Facebook Prophet.
+
+        Args:
+            periods (int): Number of periods to forecast into the future.
+            frequency (str): Frequency of the time series ('D' for daily, 'M' for monthly, etc.).
+
+        Returns:
+            Tuple[pd.DataFrame, pd.DataFrame, dict[str, float]]:
+            - Forecast dataframe (including future dates and predictions).
+            - Actual vs predicted dataframe.
+            - Evaluation metrics (MAE, RMSE).
+        """
+        # Preparing dataset
+        self.df = self.df.resample('D').ffill()
+        self.df.reset_index(inplace=True)
+        self.df.rename(columns={"Date": "ds", "total_dep_delay": "y"}, inplace=True)
+
+        # Debugging: Print date range of prophet_data
+        print("Prophet data range:", self.df['ds'].min(), "-", self.df['ds'].max())
+
+        # Prepare the training and test data
+        train_data = self.df[(self.df['ds'] <= self.train_end)]
+        test_data = self.df[(self.df['ds'] > self.train_end) & (self.df['ds'] <= self.test_end)]
+
+        # Debugging: Check if train and test datasets have data
+        print(f"Train data range: {train_data['ds'].min()} - {train_data['ds'].max()} ({len(train_data)} rows)")
+        print(f"Test data range: {test_data['ds'].min()} - {test_data['ds'].max()} ({len(test_data)} rows)")
+
+        # Check for empty train or test data
+        if train_data.empty:
+            raise ValueError("Train data is empty. Check your train_end date.")
+        if test_data.empty:
+            raise ValueError("Test data is empty. Check your test_end date.")
+
+        # Initialize Prophet
+        model = Prophet(changepoint_prior_scale=0.1, seasonality_prior_scale=10)
+        model.add_seasonality(name='monthly', period=30, fourier_order=3)
+        model.fit(train_data)
+
+        # Generate future dataframe
+        future = model.make_future_dataframe(periods=periods, freq=frequency)
+        forecast = model.predict(future)
+
+        # Extract predictions for the test period
+        predictions = forecast[['ds', 'yhat']].set_index('ds').reindex(test_data['ds'], fill_value=np.nan)
+
+        # Evaluate predictions
+        actual_vs_predicted = pd.DataFrame({
+            "Actual": test_data.set_index('ds')['y'],
+            "Predicted": predictions['yhat']
+        })
+
+        # Metrics
+        actual_vs_predicted.dropna(inplace=True)
+        predictions_metrics = actual_vs_predicted['Predicted']
+        residuals = actual_vs_predicted['Actual'] - predictions_metrics
+        metrics = evaluate_model(actual_vs_predicted['Actual'], predictions_metrics, residuals)
+
+        # Plot results
+        self.plot_forecast( predictions_metrics, "Prophet Forecast vs Actual", metrics, "y", prophet_plot=True)
+
+        return forecast, actual_vs_predicted, metrics
