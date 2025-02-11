@@ -1,11 +1,11 @@
 # core/ML/OneHotEncoding.py
 import pandas as pd
-from typing import Any, Union
+from typing import Any, List
 from avstats.core.EDA.validators.validator_OneHotEncoding import OneHotEncodingInput
 
 
 class OneHotEncoding:
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, selected_columns: List[str]):
         """
         Initializes the OneHotEncoding class with the provided dataframe.
 
@@ -16,64 +16,46 @@ class OneHotEncoding:
         validated_input = OneHotEncodingInput(df=df)
 
         self.df = validated_input.df
-        self.df = df
-        self.df_encoded = None
+        self.selected_columns = selected_columns
 
-    def encode_routes(self) -> Union[pd.DataFrame, None]:
+    def encode_selected_columns(self) -> tuple[Any, Any, Any] | Any:
         """
-        Encodes the specified route column, modifies the dummy variables,
-        and creates a subset of the dataframe for correlation analysis.
+        Encodes all categorical columns dynamically using one-hot encoding,
+        while excluding specified columns.
 
         Returns:
-            Union[pd.DataFrame, None]: The full dataframe with encoded route columns.
-
-        Raises:
-        KeyError: If required columns are not found in the dataframe.
+        pd.DataFrame: The dataframe with selected categorical columns one-hot encoded.
         """
         try:
-            # One-hot encode the 'route_iata_code' column
-            df_encoded = pd.get_dummies(self.df, columns=['route_iata_code'], drop_first=False, prefix='')
+            # Ensure only existing columns are used for encoding
+            available_columns = [col for col in self.selected_columns if col in self.df.columns]
 
-            # Convert dummy variables to numerical format (0 to 0, 1 to 2)
-            for col in df_encoded.columns:
-                if '-' in col:
-                    df_encoded[col] = df_encoded[col] * 2
+            if not available_columns:
+                print("No valid categorical columns found for encoding.")
+
+            # One-hot encode selected categorical columns
+            df_encoded = pd.get_dummies(self.df, columns=available_columns, drop_first=False, prefix_sep="_",
+                                        prefix='')
 
             # Remove leading underscores from column names
             df_encoded.columns = df_encoded.columns.str.lstrip('_')
 
-            # Store encoded dataframe for further processing
-            self.df_encoded = df_encoded
+            # Convert boolean columns (One-Hot Encoded) to numeric
+            for col in df_encoded.select_dtypes(include=['bool']).columns:
+                df_encoded[col] = df_encoded[col].astype(int)
 
-            return self.df_encoded
+            # Remove columns where all values are zero
+            df_cleaned = df_encoded.loc[:, (df_encoded != 0).any(axis=0)].copy()
+
+            # Ensure 'total_passengers' is retained and converted to numeric
+            if 'total_passengers' in df_encoded.columns:
+                df_cleaned['total_passengers'] = pd.to_numeric(df_cleaned['total_passengers'], errors='coerce')
+
+            # Select only numeric columns
+            df_numeric = df_cleaned.select_dtypes(include=['number'])
+
+            return df_encoded, df_numeric, df_cleaned
 
         except KeyError as e:
             print(f"Encoding error: {e}")
-            return None
-
-    def clean_data(self) -> tuple[Any, Any]:
-        """
-        Removes columns in the encoded dataframe where all values are zero
-        and converts 'total_passengers' to numeric format.
-
-        Returns:
-        pd.DataFrame: The dataframe with zero-only columns removed and numeric columns retained.
-
-        Raises:
-        KeyError: If the 'total_passengers' column is missing from the dataframe.
-        """
-        if self.df_encoded is None:
-            raise ValueError("Encoded dataframe is not initialized. Run encode_routes() first.")
-
-        # Remove columns where all values are zero
-        df_cleaned = self.df_encoded.loc[:, (self.df_encoded != 0).any(axis=0)].copy()
-
-        # Ensure 'total_passengers' is retained
-        if 'total_passengers' in self.df_encoded.columns:
-            # Convert 'total_passengers' to numeric, coercing errors to NaN
-            df_cleaned['total_passengers'] = pd.to_numeric(df_cleaned['total_passengers'], errors='coerce')
-
-        # Select only numeric columns
-        df_numeric = df_cleaned.select_dtypes(include=['number'])
-
-        return df_numeric, df_cleaned
+            return self.df

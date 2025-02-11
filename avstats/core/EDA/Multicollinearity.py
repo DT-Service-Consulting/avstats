@@ -40,8 +40,11 @@ class Multicollinearity:
         features = self.scaled_df.copy()
         removed_features = []
 
-        # Remove constant features before calculating VIF
-        constant_features = [col for col in features.columns if features[col].nunique() <= 1]
+        # Identifying constant features correctly
+        constant_features = features.nunique(dropna=True)
+        constant_features = constant_features[constant_features <= 1].index.tolist()
+
+        # Drop constant features from the dataset
         if constant_features:
             features = features.drop(columns=constant_features)
             removed_features.extend(constant_features)
@@ -74,3 +77,53 @@ class Multicollinearity:
             features = features.reset_index(drop=True)
 
         return pd.concat([self.y, features], axis=1), features, vif_data
+
+    def pearson_correlation(self, threshold=0.5):
+        """
+        Computes Pearson correlation between features and the target variable.
+        Removes features that have a high correlation (greater than the threshold).
+
+        Parameters:
+        df (pd.DataFrame): The input dataframe.
+        target_variable (pd.Series): The target variable.
+        threshold (float): Correlation threshold above which features will be removed.
+
+        Returns:
+        pd.DataFrame: Filtered dataframe with low correlation features.
+        pd.DataFrame: Dataframe displaying correlation values.
+        """
+        # Avoid modifying the original DataFrame and Reset index to align data properly
+        self.scaled_df = self.scaled_df.reset_index(drop=True)
+        target_variable = self.y.reset_index(drop=True)
+
+        # Ensure target_variable is a Series and align indices
+        if isinstance(target_variable, pd.Series):
+            target_variable = target_variable.reindex(self.scaled_df.index)  # Align index
+            self.scaled_df[target_variable.name] = target_variable
+        else:
+            raise ValueError("target_variable must be a pandas Series with the same index as df")
+
+        # Check if target exists in df
+        target_name = target_variable.name
+        if target_name not in self.scaled_df.columns:
+            raise KeyError(f"Target variable '{target_name}' not found in DataFrame columns")
+
+        # Compute correlation matrix
+        correlation_matrix = self.scaled_df.corr(method='pearson')
+
+        # Extract correlation with the target variable
+        target_correlation = correlation_matrix[[target_name]].drop(index=target_name).rename(
+            columns={target_name: 'Correlation'})
+
+        # Identify features with absolute correlation above the threshold
+        features_to_remove = target_correlation[abs(target_correlation['Correlation']) > threshold].index.tolist()
+
+        # Adjust threshold if too few features remain
+        while len(self.scaled_df.columns) - len(features_to_remove) < 5 and threshold < 0.9:
+            threshold += 0.05
+            features_to_remove = target_correlation[abs(target_correlation['Correlation']) > threshold].index.tolist()
+
+        # Remove highly correlated features
+        df_filtered = self.scaled_df.drop(columns=features_to_remove, errors='ignore')
+
+        return df_filtered, target_correlation
