@@ -16,6 +16,16 @@ def save_dataframe(df, filename):
     df.to_csv(file_path, index=False)
     print(f"DataFrame saved to {file_path}")
 
+def save_json(data, filename):
+    # Define the path to save the file
+    data_folder = os.path.join("..", "data")  # Adjust the path if needed
+    file_path = os.path.join(data_folder, f"{filename}.json")
+
+    # Save the JSON file
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    print(f"JSON file saved to {file_path}")
+
 class DataLoader:
     def __init__(self, config_path: str = 'config.yaml') -> None:
         """
