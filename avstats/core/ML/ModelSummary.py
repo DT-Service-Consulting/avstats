@@ -4,7 +4,7 @@ from avstats.core.ML.ModelEvaluation import *
 from avstats.core.ML.ModelTraining import ModelTraining
 
 
-def modelling_summary(dataframes, titles, models_to_train, output_file="model_summaries.csv"):
+def modelling_summary(dataframes, titles, models_to_train):
     """
     Train and evaluate multiple models on different datasets.
 
@@ -12,12 +12,11 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
     - dataframes: List of tuples [(DataFrame, str)], each containing the dataset and target column name.
     - titles: List of titles corresponding to the datasets.
     - models_to_train: List of model names as keys from the `ModelTraining.models` dictionary.
-    - output_file: File path to save the model summaries as a CSV file.
 
     Returns:
     - dict: Dictionary with dataset titles as keys and their trained models and metrics as values.
-    - pd.DataFrame: DataFrame containing the overall model summaries.
     - dict: Simplified dictionary with only the key metrics (MAE, MAPE, RMSE) for each model and dataset.
+    - dict: Dictionary containing the best model for each dataset (based on RMSE).
     """
     num_plots = len(dataframes) * len(models_to_train)
     rows = (num_plots + 1) // 2
@@ -27,8 +26,9 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
     axes = axes.flatten()
 
     model_summaries = []
-    plot_idx = 0
     metrics_summary = {}
+    final_models = {}
+    plot_idx = 0
 
     for i, ((df, column), title) in enumerate(zip(dataframes, titles)):
         try:
@@ -39,6 +39,9 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
             model_training = ModelTraining(x_train, y_train, x_test, y_test)
 
             dataset_metrics = {}
+            final_model_name = None
+            final_rmse = np.inf  # Initialize with a high value
+            final_trained_model = None
 
             for model_name in models_to_train:
                 # Train the model
@@ -55,6 +58,12 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
                     "MAPE (%)": metrics["MAPE (%)"],
                     "RMSE (min.)": metrics["RMSE (min.)"],
                 }
+
+                # Check if this model has the best RMSE
+                if metrics["RMSE (min.)"] < final_rmse:
+                    final_rmse = metrics["RMSE (min.)"]
+                    final_model_name = model_name
+                    final_trained_model = trained_model
 
                 # Plot results
                 ax = axes[plot_idx]
@@ -77,6 +86,12 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
                 }
                 model_summaries.append(model_summary)
 
+            # Save best model for this dataset
+            final_models[title] = {
+                "Model Name": final_model_name,
+                "Trained Model": final_trained_model,
+                "Best RMSE": final_rmse
+            }
             metrics_summary[title] = dataset_metrics
 
         except KeyError as e:
@@ -92,6 +107,4 @@ def modelling_summary(dataframes, titles, models_to_train, output_file="model_su
 
     # Convert model summaries to a DataFrame and save
     model_summary_df = pd.DataFrame(model_summaries)
-    model_summary_df.to_csv(output_file, index=False)
-
-    return model_summary_df, metrics_summary
+    return model_summary_df, metrics_summary, final_models

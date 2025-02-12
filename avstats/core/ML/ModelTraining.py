@@ -2,6 +2,7 @@
 import seaborn as sns
 import xgboost as xgb
 from typing import Tuple
+from sklearn.base import RegressorMixin
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
@@ -104,8 +105,9 @@ class ModelTraining:
         return self.model, self.y_pred
 
     def train_xgboost(self) -> Tuple[xgb.XGBRegressor, np.ndarray]:
-        """ Trains an XGBoost model. """
+        """ Trains an XGBoost model with scikit-learn compatibility. """
         self.model = xgb.XGBRegressor(n_estimators=200, learning_rate=0.05, max_depth=5, random_state=42)
+        self.model._estimator_type = "regressor"
         self.model.fit(self.x_train, self.y_train)
         self.y_pred = self.model.predict(self.x_test)
 
