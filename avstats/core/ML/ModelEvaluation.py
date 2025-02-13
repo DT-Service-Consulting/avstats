@@ -130,7 +130,7 @@ def plot_combined(model_name, actual, predicted, residuals=None):
     actual = np.array(actual)
     predicted = np.array(predicted)
     residuals = np.array(residuals) if residuals is not None else actual - predicted
-    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
     # Actual vs Predicted plot
     axes[0].plot(actual, label='Actual', alpha=0.7)
@@ -172,7 +172,7 @@ def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -
     sorted_metrics = df[['MAE (min.)', 'RMSE (min.)']].sort_values(by=['MAE (min.)', 'RMSE (min.)'])
 
     # Plot MAE and RMSE
-    fig1, ax1 = plt.subplots(figsize=(14, 6))
+    fig1, ax1 = plt.subplots(figsize=(12, 4))
     sorted_metrics.plot(kind='bar', ax=ax1, alpha=0.7)
     ax1.set_title('Model Performance (MAE and RMSE)', fontsize=14)
     ax1.set_ylabel('(min.)', fontsize=12)
@@ -186,7 +186,7 @@ def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -
     sorted_mape = df[['MAPE (%)']].sort_values(by='MAPE (%)')
 
     # Plot MAPE
-    fig2, ax2 = plt.subplots(figsize=(14, 6))
+    fig2, ax2 = plt.subplots(figsize=(12, 4))
     sorted_mape.plot(kind='bar', ax=ax2, alpha=0.7)
     ax2.set_title('Model Performance (MAPE)', fontsize=14)
     ax2.set_ylabel('(%)', fontsize=12)

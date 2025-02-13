@@ -1,121 +1,196 @@
-import logging
+# core/ML/ModelPipeline.py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import Any, Dict, List, Optional, Union
-from sklearn.model_selection import GridSearchCV, learning_curve
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.statespace.sarimax import SARIMAX
+import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve
+from avstats.core.ML.ModelEvaluation import evaluate_model, cross_validate
+from avstats.core.ML.ModelTraining import ModelTraining
 from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 
 
 class ModelPipeline:
-    def __init__(
-            self,
-            model: Any,
-            df: Optional[pd.DataFrame] = None,
-            param_grid: Optional[Union[Dict, List[Dict]]] = None,
-            model_type: str = "ml",
-            scoring: str = "neg_mean_squared_error",
-    ):
-        self.model = model
-        self.df = df
-        self.param_grid = param_grid
-        self.model_type = model_type
-        self.scoring = scoring
-        self.best_model = None
-        self.results = {}
-
-    def hyperparameter_tuning(self, x_train=None, y_train=None):
+    """
+    A pipeline for training, evaluating, and visualizing multiple ML models on different datasets.
+    """
+    def __init__(self, dataframes, titles, models_to_train, param_grids=None):
         """
-        Perform hyperparameter tuning for both ML and time-series models.
+        Initializes the model pipeline.
+
+        Parameters:
+        - dataframes: List of tuples [(DataFrame, str)] with dataset and target column name.
+        - titles: List of dataset titles.
+        - models_to_train: List of model names (keys from `ModelTraining.models`).
+        - param_grids: Dictionary with hyperparameter grids for each model (optional).
         """
-        if not self.param_grid:
-            logging.warning(f"No hyperparameter grid provided for {self.model}. Skipping tuning.")
-            if self.model_type not in ["arima", "sarimax"]:
-                self.best_model = self.model.fit(x_train, y_train)
-            self.results["best_params"] = "No tuning performed"
-            return self.best_model
+        self.dataframes = dataframes
+        self.titles = titles
+        self.models_to_train = models_to_train
+        self.param_grids = param_grids
+        self.metrics_summary = {}
+        self.final_models = {}
 
-        if self.model_type in ["arima", "sarimax"]:
-            best_score = float("inf")
-            for params in self.param_grid:
-                try:
-                    # Ensure endog is a pd.Series
-                    endog = self.df['total_dep_delay'].astype(float)
+        self.x_train = None
+        self.x_test = None
+        self.y_train = None
+        self.y_test = None
 
-                    if self.model_type == "arima":
-                        model = self.model(endog=endog, **params).fit()
-                    elif self.model_type == "sarimax":
-                        model = self.model(endog=endog, exog=None, **params).fit()
+        # Set Seaborn style globally
+        sns.set_style("whitegrid")
 
-                    # Evaluate model
-                    test_data = endog[-30:]  # Use the last 30 days as test data
-                    mae = self.evaluate_arima(model, test_data=test_data)
+    def train_models(self):
+        """
+        Trains models for each dataset and stores results.
+        """
+        model_summaries = []
 
-                    # Track best parameters
-                    if mae < best_score:
-                        best_score = mae
-                        self.best_model = model
-                        self.results["best_params"] = params
-                except Exception as e:
-                    logging.warning(f"Error with parameters {params}: {e}")
+        for i, ((df, column), title) in enumerate(zip(self.dataframes, self.titles)):
+            try:
+                # Prepare features and target
+                x = df.drop(columns=[column])
+                y = df[column]
+                self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(x, y, test_size=0.2,
+                                                                                        random_state=42)
+                model_training = ModelTraining(self.x_train, self.y_train, self.x_test, self.y_test)
+
+                dataset_metrics = {}
+                model_storage = {}  # Store all trained models + predictions per dataset
+
+                for model_name in self.models_to_train:
+                    trained_model, predictions, best_params = self.train_single_model(model_training, model_name)
+                    residuals = self.y_test - predictions
+                    metrics = evaluate_model(self.y_test, predictions, residuals)  # Evaluate model
+
+                    # Store metrics
+                    dataset_metrics[model_name] = {"MAE (min.)": metrics["MAE (min.)"], "MAPE (%)": metrics["MAPE (%)"],
+                                                   "RMSE (min.)": metrics["RMSE (min.)"]}
+
+                    # Store trained model + predictions separately
+                    model_storage[model_name] = {
+                        "Trained Model": trained_model,
+                        "Metrics": metrics,
+                        "Predictions": predictions,  # Store predictions for this model
+                        "Actual Values": self.y_test,  # Store actual values for this model
+                        "Model Training": model_training,
+                    }
+                    cv_scores = cross_validate(self.x_train, self.y_train)  # Cross-validation scores
+
+                    # Store model summary
+                    model_summary = {
+                        "Dataset": title,
+                        "Model": model_name,
+                        "Best Params": best_params,
+                        "MAE (min.)": metrics["MAE (min.)"],
+                        "MAPE (%)": metrics["MAPE (%)"],
+                        "RMSE (min.)": metrics["RMSE (min.)"],
+                        "Mean CV R2": cv_scores.mean(),
+                        "Std CV R2": cv_scores.std(),
+                        "CV Scores": cv_scores.tolist(),
+                    }
+                    model_summaries.append(model_summary)
+
+                # Save all models for this dataset
+                self.final_models[title] = model_storage
+                self.metrics_summary[title] = dataset_metrics
+
+            except KeyError as e:
+                print(f"Skipping DataFrame {i} due to missing column: {e}")
+
+        return pd.DataFrame(model_summaries)
+
+    def train_single_model(self, model_training, model_name):
+        """
+        Trains a single model, applying hyperparameter tuning if applicable.
+
+        Returns:
+        - trained_model: The trained ML model.
+        - predictions: Model predictions on x_test.
+        - best_params: Best hyperparameters if tuning was applied.
+        """
+        model_function = model_training.models[model_name]
+
+        if self.param_grids and model_name in self.param_grids:
+            param_grid = self.param_grids[model_name]
+            model, _ = model_function()
+            search = GridSearchCV(model, param_grid, scoring="neg_mean_squared_error", cv=5, n_jobs=-1)
+            search.fit(self.x_train, self.y_train)
+            trained_model = search.best_estimator_
+            predictions = trained_model.predict(self.x_test)
+            best_params = search.best_params_
+
+        elif model_name == "Linear Regression":
+            trained_model = LinearRegression()
+            trained_model.fit(self.x_train, self.y_train)
+            predictions = trained_model.predict(self.x_test)
+            best_params = "Default"
+            model_training.train_linear_model()
+
         else:
-            # ML models
-            search = GridSearchCV(self.model, self.param_grid, scoring=self.scoring, cv=5, verbose=1, n_jobs=-1)
-            search.fit(x_train, y_train)
-            self.best_model = search.best_estimator_
-            self.results["best_params"] = search.best_params_
-        logging.info(f"Best Parameters: {self.results.get('best_params', 'No valid parameters')}")
-        return self.best_model
+            trained_model, predictions = model_function()
+            best_params = "Default"
 
-    @staticmethod
-    def evaluate_arima(model, test_data):
-        """
-        Evaluate ARIMA/SARIMAX using Mean Absolute Error (MAE).
-        """
-        try:
-            forecast = model.forecast(steps=len(test_data))
-            mae = mean_absolute_error(test_data, forecast)
-            return mae
-        except Exception as e:
-            logging.error(f"Error during ARIMA evaluation: {e}")
-            return float("inf")
+        return trained_model, predictions, best_params
 
-    def plot_learning_curve(self, x, y, title, cv=5):
+    def _setup_subplot_grid(self):
         """
-        Plot the learning curve for ML models.
+        Creates a subplot grid based on the number of models and datasets.
+        Returns the figure and axes.
         """
-        if self.model_type in ["arima", "sarimax"]:
-            logging.info(f"Learning curves are not applicable for {self.model_type} models.")
-            return
+        num_plots = sum(len(models) for models in self.final_models.values())  # Count total models
+        rows = (num_plots + 1) // 2
+        cols = 2
+        fig, axes = plt.subplots(rows, cols, figsize=(20, rows * 5))
+        axes = axes.flatten()
+        plot_idx = 0
+        return fig, axes, num_plots, plot_idx
 
-        train_sizes, train_scores, test_scores = learning_curve(
-            self.model, x, y, cv=cv, scoring=self.scoring, train_sizes=np.linspace(0.1, 1.0, 10)
-        )
-        train_mean = -np.mean(train_scores, axis=1)
-        test_mean = -np.mean(test_scores, axis=1)
+    def plot_results(self):
+        """
+        Plots actual vs. predicted values for all models.
+        """
+        fig, axes, num_plots, plot_idx = self._setup_subplot_grid()
 
-        plt.figure()
-        plt.plot(train_sizes, train_mean, label="Training Score", color="blue")
-        plt.plot(train_sizes, test_mean, label="Validation Score", color="orange")
-        plt.title(f"Learning Curve: {title}")
-        plt.xlabel("Training Size")
-        plt.ylabel("Error")
-        plt.legend()
+        for title, models in self.final_models.items():
+            for model_name, model_info in models.items():
+                predictions = model_info["Predictions"]
+
+                ax = axes[plot_idx]
+                ax.scatter(self.y_test, predictions, label="Predictions", s=10, alpha=0.6)
+                ax.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()],
+                        color="red", linestyle="-", label="Perfect Prediction")
+                ax.set_title(f"{model_name} - {title}")
+                ax.set_xlabel("Actual Values (min.)")
+                ax.set_ylabel("Predicted Values (min.)")
+                ax.legend()
+                plot_idx += 1
+
+        plt.tight_layout()
         plt.show()
 
-    def train_and_evaluate(self, x_train, x_test, y_train, y_test):
+    def plot_learning_curves(self):
         """
-        Train and evaluate the model.
+        Plots learning curves for all models and datasets.
         """
-        self.model.fit(x_train, y_train)
-        predictions = self.model.predict(x_test)
-        mae = mean_absolute_error(y_test, predictions)
-        rmse = np.sqrt(mean_squared_error(y_test, predictions))
-        self.results["metrics"] = {"mae": mae, "rmse": rmse}
-        logging.info(f"Evaluation Metrics: MAE={mae}, RMSE={rmse}")
-        return self.model, predictions
+        fig, axes, num_plots, plot_idx = self._setup_subplot_grid()
+
+        for title, models in self.final_models.items():
+            for model_name, model_info in models.items():
+                trained_model = model_info["Trained Model"]
+
+                train_sizes, train_scores, test_scores = learning_curve(
+                    trained_model, self.x_train, self.y_train, cv=5,
+                    scoring="neg_mean_squared_error", train_sizes=np.linspace(0.1, 1.0, 10))
+                train_mean = -np.mean(train_scores, axis=1)
+                test_mean = -np.mean(test_scores, axis=1)
+
+                ax = axes[plot_idx]
+                ax.plot(train_sizes, train_mean, label="Training Score", color="blue")
+                ax.plot(train_sizes, test_mean, label="Validation Score", color="orange")
+                ax.set_title(f"Learning Curve: {model_name} - {title}")
+                ax.set_xlabel("Training Size")
+                ax.set_ylabel("Error")
+                ax.legend()
+                plot_idx += 1
+
+        plt.tight_layout()
+        plt.show()
