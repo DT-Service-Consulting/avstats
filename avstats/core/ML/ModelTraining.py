@@ -113,7 +113,7 @@ class ModelTraining:
 
         return self.model, self.y_pred
 
-    def plot_model(self, title, evaluation_metrics, ax=None) -> None:
+    def plot_model(self, title, evaluation_metrics=None, ax=None) -> None:
         """
         Plots actual vs predicted values with a metrics table.
 
@@ -143,5 +143,8 @@ class ModelTraining:
         ax.set_ylabel("Predicted Values (min.)")
         ax.set_xlim(self.y_test.min(), self.y_test.max())
         ax.set_ylim(self.y_test.min(), self.y_test.max())
+
+        if evaluation_metrics:
+            metrics_box(evaluation_metrics, ax)
+
         ax.legend()
-        metrics_box(evaluation_metrics, ax)
