@@ -155,10 +155,10 @@ class ModelPipeline:
                 predictions = model_info["Predictions"]
 
                 ax = axes[plot_idx]
-                ax.scatter(self.y_test, predictions, label="Predictions", s=10, alpha=0.6)
+                ax.scatter(self.y_test, predictions, label="Predictions", s=20, alpha=0.6)
                 ax.plot([self.y_test.min(), self.y_test.max()], [self.y_test.min(), self.y_test.max()],
                         color="red", linestyle="-", label="Perfect Prediction")
-                ax.set_title(f"{model_name} - {title}")
+                ax.set_title(f"{model_name} - {title}", fontsize=14)
                 ax.set_xlabel("Actual Values (min.)")
                 ax.set_ylabel("Predicted Values (min.)")
                 ax.legend()
@@ -186,7 +186,7 @@ class ModelPipeline:
                 ax = axes[plot_idx]
                 ax.plot(train_sizes, train_mean, label="Training Score", color="blue")
                 ax.plot(train_sizes, test_mean, label="Validation Score", color="orange")
-                ax.set_title(f"Learning Curve: {model_name} - {title}")
+                ax.set_title(f"Learning Curve: {model_name} - {title}", fontsize=14)
                 ax.set_xlabel("Training Size")
                 ax.set_ylabel("Error")
                 ax.legend()

@@ -30,6 +30,37 @@ class NeuralNetworks:
         model.compile(optimizer='adam', loss='mse')
         return model
 
+    def neural_networks(self) -> tuple:
+        # Scale data
+        values = self.df[self.column].values
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled_values = scaler.fit_transform(values.reshape(-1, 1))
+
+        # Create dataset
+        x, y = self.create_dataset(scaled_values, self.look_back)
+        x = np.reshape(x, (x.shape[0], x.shape[1], 1))
+
+        # Split data
+        train_size = int(len(x) * 0.8)
+        x_train, x_test = x[:train_size], x[train_size:]
+        y_train, y_test = y[:train_size], y[train_size:]
+
+        # Build and train model
+        model = self.build_lstm_model((self.look_back, 1))
+        early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1, callbacks=[early_stopping])
+
+        # Predictions
+        predicted = model.predict(x_test)
+        predictions_inverse = scaler.inverse_transform(predicted)
+        y_test_inverse = scaler.inverse_transform(y_test.reshape(-1, 1))
+
+        # Evaluation
+        residuals = y_test_inverse - predictions_inverse
+        metrics = evaluate_model(y_test_inverse, predictions_inverse, residuals)
+
+        return model, y_test_inverse, predictions_inverse, metrics
+
     @staticmethod
     def explain_lstm(model, x_test):
         """
@@ -67,52 +98,6 @@ class NeuralNetworks:
         explainer = shap.KernelExplainer(model_predict, x_test_2d)
         shap_values = explainer.shap_values(x_test_2d[:10])
         shap.summary_plot(shap_values, x_test_2d[:10])
-
-    def neural_networks(self, x_standardized, y):
-        look_back = self.look_back
-        n_features = x_standardized.shape[1]
-        n_samples = x_standardized.shape[0]
-
-        # Ensure sufficient samples for the look-back window
-        if n_samples <= look_back:
-            raise ValueError(f"Insufficient samples ({n_samples}) for look-back window ({look_back}).")
-
-        # Reshape the data dynamically
-        x = np.array([x_standardized.values[i:i + look_back] for i in range(n_samples - look_back)])
-        y = y[look_back:]  # Adjust target to align with input sequences
-
-        # Split into train/test
-        train_size = int(len(x) * 0.8)
-        x_train, x_test = x[:train_size], x[train_size:]
-        y_train, y_test = y[:train_size], y[train_size:]
-
-        # Build and train model
-        model = self.build_lstm_model((look_back, n_features))
-        early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test),
-                  callbacks=[early_stopping])
-
-        # Predictions
-        predicted = model.predict(x_test)
-
-        # Ensure y_test is 1D
-        if isinstance(y_test, pd.DataFrame):
-            y_test = y_test.squeeze()  # Convert to Series if it's a DataFrame
-        y_test = y_test.values.flatten()  # Convert to a 1D NumPy array
-
-        # Evaluation
-        predicted = predicted.flatten() # Ensure predicted is flattened
-        residuals = y_test - predicted # Calculate residuals
-
-        print(f"Shape of y_test: {y_test.shape}")
-        print(f"Shape of predicted: {predicted.shape}")
-        print(f"First 5 residuals: {residuals[:5]}")
-
-        # Evaluate the model
-        metrics = evaluate_model(y_test, predicted, residuals)
-
-        return model, x_test, y_test, predicted.flatten(), metrics
-
 
 def nn_plots(axes, index, actual, predicted, title, metrics):
     """

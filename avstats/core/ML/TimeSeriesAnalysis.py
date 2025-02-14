@@ -151,7 +151,7 @@ class TimeSeriesAnalysis:
             plt.xticks(rotation=45)
             for month in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
                 plt.axvline(month, color='k', linestyle='--', alpha=0.2)
-        plt.title(title)
+        plt.title(title, fontsize=14)
         plt.ylabel('Flights')
         metrics_box(metrics)
         plt.legend()
@@ -180,21 +180,21 @@ class TimeSeriesAnalysis:
         # Actual vs Predicted plot
         axes[0].plot(actual_dates, actual, label='Actual')
         axes[0].plot(prediction_dates, predictions, label='Predicted', color='orange')
-        axes[0].set_title(f'{model_name}: Actual vs Predicted')
+        axes[0].set_title(f'{model_name}: Actual vs Predicted', fontsize=14)
 
         # Ensure vertical lines for test periods are on the correct axis
         for month in pd.date_range(start=self.train_end, end=self.test_end, freq='MS'):
             axes[0].axvline(month, color='k', linestyle='--', alpha=0.2)
 
         axes[0].legend()
-        axes[0].tick_params(axis="x", rotation=45, labelsize=8)
+        axes[0].tick_params(axis="x", rotation=45, labelsize=10)
 
         # Residuals plot
         axes[1].plot(residual_dates, residuals, label='Residuals', color='purple')
         axes[1].axhline(0, color='black', linestyle='--', alpha=0.7)
-        axes[1].set_title(f'{model_name}: Residuals')
+        axes[1].set_title(f'{model_name}: Residuals', fontsize=14)
         axes[1].legend()
-        axes[1].tick_params(axis="x", rotation=45, labelsize=8)
+        axes[1].tick_params(axis="x", rotation=45, labelsize=10)
 
         plt.tight_layout()
         plt.show()

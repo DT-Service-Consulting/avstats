@@ -330,7 +330,7 @@ def plot_airline_avg_delays(df, delay_column='dep_delay', airline_column='airlin
     ax1.set_xlabel("Average Delay (min.)")
     ax1.set_ylabel("Airline")
     for i, (value, airline) in enumerate(zip(airline_delays.tail(top_n).values, airline_delays.tail(top_n).index)):
-        ax1.text(value + 1, i, f"{value:.2f} min.", color='black', va='center', fontsize=10)
+        ax1.text(value + 1, i, f"{value:.2f} min.", color='black', va='center', fontsize=8)
 
     # Top airlines with the lowest average delays
     ax2 = plt.subplot(1, 2, 2)
@@ -339,7 +339,7 @@ def plot_airline_avg_delays(df, delay_column='dep_delay', airline_column='airlin
     ax2.set_xlabel("Average Delay (min.)")
     ax2.set_ylabel("Airline")
     for i, (value, airline) in enumerate(zip(airline_delays.head(top_n).values, airline_delays.head(top_n).index)):
-        ax2.text(value + 0.5, i, f"{value:.2f} min.", color='black', va='center', fontsize=10)
+        ax2.text(value + 0.5, i, f"{value:.2f} min.", color='black', va='center', fontsize=8)
 
     plt.tight_layout()
     plt.show()
