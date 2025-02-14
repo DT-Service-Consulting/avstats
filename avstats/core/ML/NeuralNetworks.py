@@ -30,7 +30,18 @@ class NeuralNetworks:
         model.compile(optimizer='adam', loss='mse')
         return model
 
-    def neural_networks(self) -> tuple:
+    def neural_networks(self, dataset_name) -> tuple:
+        """
+        Trains an LSTM model, evaluates its performance, and stores results in a structured format.
+
+        Args:
+            dataset_name (str): Name of the dataset for identification.
+
+        Returns:
+            dict: Model summary containing metrics, predictions, and configuration details.
+        """
+        model_summaries = []
+
         # Scale data
         values = self.df[self.column].values
         scaler = MinMaxScaler(feature_range=(0, 1))
@@ -48,7 +59,7 @@ class NeuralNetworks:
         # Build and train model
         model = self.build_lstm_model((self.look_back, 1))
         early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-        model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1, callbacks=[early_stopping])
+        history = model.fit(x_train, y_train, epochs=50, batch_size=32, validation_data=(x_test, y_test), verbose=1, callbacks=[early_stopping])
 
         # Predictions
         predicted = model.predict(x_test)
@@ -59,7 +70,20 @@ class NeuralNetworks:
         residuals = y_test_inverse - predictions_inverse
         metrics = evaluate_model(y_test_inverse, predictions_inverse, residuals)
 
-        return model, y_test_inverse, predictions_inverse, metrics
+        # Store results
+        model_summary = {
+            "Dataset": dataset_name,
+            "Model Type": "LSTM",
+            "Look Back Period": self.look_back,
+            "Final Validation Loss": history.history["val_loss"][-1] if "val_loss" in history.history else None,
+            "MAE (min.)": metrics["MAE (min.)"],
+            "MAPE (%)": metrics["MAPE (%)"],
+            "RMSE (min.)": metrics["RMSE (min.)"],
+            "Total Training Epochs": len(history.history["loss"]),
+        }
+        model_summaries.append(model_summary)
+
+        return model, y_test_inverse, predictions_inverse, model_summary
 
     @staticmethod
     def explain_lstm(model, x_test):
@@ -99,7 +123,7 @@ class NeuralNetworks:
         shap_values = explainer.shap_values(x_test_2d[:10])
         shap.summary_plot(shap_values, x_test_2d[:10])
 
-def nn_plots(axes, index, actual, predicted, title, metrics):
+def nn_plots(axes, index, actual, predicted, title): #, metrics):
     """
     Plots actual vs. predicted values with metrics.
 
@@ -109,7 +133,6 @@ def nn_plots(axes, index, actual, predicted, title, metrics):
         actual (array-like): Actual values.
         predicted (array-like): Predicted values.
         title (str): Plot title.
-        metrics (dict): Dictionary of evaluation metrics.
     """
     ax = axes if not isinstance(axes, (list, np.ndarray)) else axes[index]
 
@@ -119,4 +142,4 @@ def nn_plots(axes, index, actual, predicted, title, metrics):
     ax.set_xlabel("Dataframe Index (Flights)")
     ax.set_ylabel("Delay (min.)")
     ax.legend()
-    metrics_box(metrics, ax)
+    # metrics_box(metrics, ax)
