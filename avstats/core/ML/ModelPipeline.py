@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import shap
 from sklearn.model_selection import train_test_split, GridSearchCV, learning_curve
 from avstats.core.ML.ModelEvaluation import evaluate_model, cross_validate
 from avstats.core.ML.ModelTraining import ModelTraining
@@ -65,6 +66,20 @@ class ModelPipeline:
                     dataset_metrics[model_name] = {"MAE (min.)": metrics["MAE (min.)"], "MAPE (%)": metrics["MAPE (%)"],
                                                    "RMSE (min.)": metrics["RMSE (min.)"]}
 
+                    # Choose the appropriate SHAP explainer
+                    if model_name in ["Random Forest", "XGBoost", "Gradient Boosting"]:
+                        explainer = shap.TreeExplainer(trained_model)
+                        shap_values = explainer.shap_values(self.x_test)
+
+                    elif model_name == "Linear Regression":
+                        explainer = shap.LinearExplainer(trained_model, self.x_train)
+                        shap_values = explainer.shap_values(self.x_test)
+
+                    else:  # For SVR and other non-tree models
+                        explainer = shap.KernelExplainer(trained_model.predict,
+                                                         self.x_train[:50])  # Using a sample for efficiency
+                        shap_values = explainer.shap_values(self.x_test[:50])  # Compute on a smaller test set
+
                     # Store trained model + predictions separately
                     model_storage[model_name] = {
                         "Trained Model": trained_model,
@@ -72,6 +87,7 @@ class ModelPipeline:
                         "Predictions": predictions,  # Store predictions for this model
                         "Actual Values": self.y_test,  # Store actual values for this model
                         "Model Training": model_training,
+                        "SHAP Values": shap_values,  # Store SHAP values
                     }
                     cv_scores = cross_validate(self.x_train, self.y_train)  # Cross-validation scores
 
@@ -194,3 +210,21 @@ class ModelPipeline:
 
         plt.tight_layout()
         plt.show()
+
+    def plot_shap_values(self):
+        """
+        Plots SHAP summary values for each trained model.
+        """
+        for title, models in self.final_models.items():
+            for model_name, model_info in models.items():
+                shap_values = model_info["SHAP Values"]
+                x_test = model_info["Actual Values"]  # Ensure correct dataset
+
+                if shap_values.shape[0] != x_test.shape[0]:
+                    print(f"Skipping {model_name} - Mismatched SHAP Values: {shap_values.shape} vs {x_test.shape}")
+                    continue  # Skip plotting if mismatch remains
+
+                plt.figure(figsize=(10, 6))
+                shap.summary_plot(shap_values, x_test, show=False)
+                plt.title(f"SHAP Summary Plot: {model_name} - {title}")
+                plt.show()

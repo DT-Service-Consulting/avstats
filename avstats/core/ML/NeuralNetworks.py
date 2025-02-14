@@ -1,6 +1,4 @@
 # core/ML/NeuralNetworks.py
-import shap
-import tensorflow as tf
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import EarlyStopping
@@ -85,43 +83,6 @@ class NeuralNetworks:
 
         return model, y_test_inverse, predictions_inverse, model_summary
 
-    @staticmethod
-    def explain_lstm(model, x_test):
-        """
-        Explain LSTM model predictions using SHAP.
-
-        Args:
-            model: Trained LSTM model.
-            x_test: Test data used for prediction (3D array for LSTM).
-        """
-        import shap
-
-        # Convert x_test to NumPy if it's a TensorFlow tensor
-        if isinstance(x_test, tf.Tensor):
-            x_test = x_test.numpy()
-
-        # Ensure x_test has at least 10 samples
-        num_samples = min(50, len(x_test))
-        x_test_sample = x_test[:num_samples]
-
-        # Check for proper dimensionality
-        if len(x_test_sample.shape) != 3:
-            raise ValueError(f"x_test_sample expected to have 3 dimensions, but got {x_test_sample.shape}")
-
-        # Flatten x_test_sample to 2D for SHAP
-        x_test_2d = x_test_sample.reshape(x_test_sample.shape[0], -1)
-
-        # Define a function for SHAP that reshapes input back to LSTM format
-        def model_predict(x):
-            num_features = x_test_sample.shape[2]
-            look_back = x_test_sample.shape[1]
-            x_reshaped = x.reshape((x.shape[0], look_back, num_features))
-            return model.predict(x_reshaped)
-
-        # Initialize SHAP KernelExplainer
-        explainer = shap.KernelExplainer(model_predict, x_test_2d)
-        shap_values = explainer.shap_values(x_test_2d[:10])
-        shap.summary_plot(shap_values, x_test_2d[:10])
 
 def nn_plots(axes, index, actual, predicted, title): #, metrics):
     """
