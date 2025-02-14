@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+from datetime import datetime
 from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import KFold
 from typing import List, Dict, Union, Optional
-from avstats.core.ML.validators.validator_ModelEvaluation import CrossValidationInput, ModelEvaluationInput
+from avstats.core.ML.validators.validator_ModelEvaluation import ModelEvaluationInput
 
 
 def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.ndarray:
@@ -54,7 +55,6 @@ def cross_validate(x_train: np.ndarray, y_train: np.ndarray, cv: int = 5) -> np.
 
     return np.array(scores)
 
-
 def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Optional[np.ndarray] = None) -> Dict[str, Union[float, None]]:
     """
     Evaluate model performance using MAE, MAPE, and RMSE.
@@ -94,7 +94,6 @@ def evaluate_model(test_data: np.ndarray, predictions: np.ndarray, residuals: Op
         "RMSE (min.)": round(rmse, 2)
     }
 
-
 def metrics_box(evaluation_metrics, ax=None):
     """
     Add a metrics box to a specific axis.
@@ -116,39 +115,6 @@ def metrics_box(evaluation_metrics, ax=None):
             1.05, 0.5, metrics_text, transform=ax.transAxes, fontsize=10,
             verticalalignment='center', horizontalalignment='left', bbox=props
         )
-
-def plot_combined(model_name, actual, predicted, residuals=None):
-    """
-    Plot actual vs predicted values and residuals side by side.
-
-    Args:
-        model_name (str): Name of the model.
-        actual (array-like): The actual values.
-        predicted (array-like): The predicted values.
-        residuals (array-like, optional): Residuals (actual - predicted). Defaults to None.
-    """
-    actual = np.array(actual)
-    predicted = np.array(predicted)
-    residuals = np.array(residuals) if residuals is not None else actual - predicted
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-    # Actual vs Predicted plot
-    axes[0].plot(actual, label='Actual', alpha=0.7)
-    axes[0].plot(predicted, label='Predicted', color='orange')
-    axes[0].set_title(f'{model_name}: Actual vs Predicted')
-    axes[0].legend()
-    axes[0].tick_params(axis='x', labelsize=8)
-
-    # Residuals plot
-    axes[1].plot(residuals, label='Residuals', color='purple')
-    axes[1].axhline(0, color='black', linestyle='--', alpha=0.7)
-    axes[1].set_title(f'{model_name}: Residuals')
-    axes[1].legend()
-    axes[1].tick_params(axis='x', labelsize=8)
-
-    plt.tight_layout()
-    plt.show()
-
 
 def plot_metrics(evaluation_results: List[Dict[str, Union[str, float, None]]]) -> None:
     """

@@ -1,7 +1,10 @@
 # core/ML/TimeSeriesAnalysis.py
 import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.dates as mdates
 from numpy import ndarray, dtype
+from pandas import Series
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA, ARIMAResults
@@ -50,6 +53,9 @@ class TimeSeriesAnalysis:
         validated_inputs = TimeSeriesAnalysisInput(df=df, start_date=start_date, end_date=end_date, train_end=train_end,
                                                    test_end=test_end, column=column)
 
+        # Set Seaborn style globally
+        sns.set_style("whitegrid")
+
         # Store validated inputs
         self.df = validated_inputs.df
         self.start_date = validated_inputs.start_date
@@ -59,6 +65,7 @@ class TimeSeriesAnalysis:
         self.column = validated_inputs.column
 
         # Convert 'Date' to datetime and set as index
+        self.prophet_df = None
         self.df = self.df.copy()
         self.df['Date'] = pd.to_datetime(self.df['Date'])
         self.df.set_index('Date', inplace=True)
@@ -131,7 +138,7 @@ class TimeSeriesAnalysis:
         """
         plt.figure(figsize=(12, 4))
         if prophet_plot:
-            plt.plot(self.df['ds'], self.df[prophet_column], label='Actual')
+            plt.plot(self.prophet_df['ds'], self.prophet_df[prophet_column], label='Actual')
             plt.plot(predictions.index, predictions, label='Predicted', color='orange')
             plt.xticks(rotation=45)
 
@@ -141,12 +148,55 @@ class TimeSeriesAnalysis:
         else:
             plt.plot(self.df[self.column], label='Actual')
             plt.plot(predictions, label='Predicted', color='orange')
+            plt.xticks(rotation=45)
             for month in pd.date_range(start=self.start_date, end=self.end_date, freq='MS'):
                 plt.axvline(month, color='k', linestyle='--', alpha=0.2)
         plt.title(title)
         plt.ylabel('Flights')
         metrics_box(metrics)
         plt.legend()
+        plt.show()
+
+    def plot_combined(self, model_name, predictions: pd.Series, residuals=None):
+        """
+        Plot actual vs predicted values and residuals side by side.
+
+        Args:
+            model_name (str): Name of the model.
+            predictions (pd.Series): Predicted values.
+            residuals (pd.Series, optional): Residuals (actual - predicted). Defaults to None.
+        """
+        actual = self.df[self.column]  # Get actual values
+        actual = actual.loc[predictions.index]  # Align actual values with prediction index
+        residuals = residuals if residuals is not None else actual - predictions
+
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+        # Ensure x-axis alignment using the index
+        actual_dates = actual.index
+        prediction_dates = predictions.index
+        residual_dates = residuals.index  # Ensure residuals match the x-axis
+
+        # Actual vs Predicted plot
+        axes[0].plot(actual_dates, actual, label='Actual')
+        axes[0].plot(prediction_dates, predictions, label='Predicted', color='orange')
+        axes[0].set_title(f'{model_name}: Actual vs Predicted')
+
+        # Ensure vertical lines for test periods are on the correct axis
+        for month in pd.date_range(start=self.train_end, end=self.test_end, freq='MS'):
+            axes[0].axvline(month, color='k', linestyle='--', alpha=0.2)
+
+        axes[0].legend()
+        axes[0].tick_params(axis="x", rotation=45, labelsize=8)
+
+        # Residuals plot
+        axes[1].plot(residual_dates, residuals, label='Residuals', color='purple')
+        axes[1].axhline(0, color='black', linestyle='--', alpha=0.7)
+        axes[1].set_title(f'{model_name}: Residuals')
+        axes[1].legend()
+        axes[1].tick_params(axis="x", rotation=45, labelsize=8)
+
+        plt.tight_layout()
         plt.show()
 
     def arima_sarimax_forecast(self, order: Tuple[int, int, int], seasonal_order: Optional[
@@ -189,8 +239,8 @@ class TimeSeriesAnalysis:
         return model, test_data, predictions, residuals, metrics
 
     def rolling_forecast(self, order: Tuple[int, int, int], train_window: int, forecast_steps: int = 1,
-                     seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> tuple[
-        ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]], ndarray[Any, dtype[Any]], dict[str, float | None]]:
+                         seasonal_order: Optional[Tuple[int, int, int, int]] = None) -> tuple[
+        ndarray[Any, dtype[Any]], Series, Series, dict[str, float | None]]:
         """
         Perform rolling forecast.
 
@@ -216,17 +266,24 @@ class TimeSeriesAnalysis:
             rolling_predictions.append(forecast.values[0])
             rolling_actual.append(test_data.values[0])
 
-        # Convert to numpy arrays
-        rolling_predictions = np.array(rolling_predictions)
-        rolling_actual = np.array(rolling_actual)
-        residuals = rolling_actual - rolling_predictions
+        # Convert actual and predictions to NumPy arrays (to match expected function return type)
+        rolling_actual_array = np.array(rolling_actual)
+        rolling_predictions_array = np.array(rolling_predictions)
 
-        # Plot results
-        metrics = evaluate_model(rolling_actual, rolling_predictions, residuals)
-        self.plot_forecast(pd.Series(rolling_predictions,index=self.df[self.column].index[train_window:len(
-            self.df[self.column]) - forecast_steps + 1]),title="Rolling Forecast vs Actual", metrics=metrics)
+        # Generate index for Pandas Series to align with timestamps
+        index_range = self.df[self.column].index[train_window: len(self.df[self.column]) - forecast_steps + 1]
 
-        return rolling_actual, rolling_predictions, residuals, metrics
+        # Convert residuals to Pandas Series for plotting
+        rolling_residuals_series = pd.Series(rolling_actual_array - rolling_predictions_array, index=index_range)
+
+        # Convert to NumPy arrays before evaluation (expected format)
+        metrics = evaluate_model(rolling_actual_array, rolling_predictions_array, rolling_residuals_series.values)
+
+        # Plot results using Series format
+        rolling_predictions_series = pd.Series(rolling_predictions_array, index=index_range)
+        self.plot_forecast(rolling_predictions_series, title="Rolling Forecast vs Actual", metrics=metrics)
+
+        return rolling_actual_array, rolling_predictions_series, rolling_residuals_series, metrics
 
     def prophet_forecast(self, periods, frequency='D'):
         """
@@ -243,16 +300,17 @@ class TimeSeriesAnalysis:
             - Evaluation metrics (MAE, RMSE).
         """
         # Preparing dataset
-        self.df = self.df.resample('D').ffill()
-        self.df.reset_index(inplace=True)
-        self.df.rename(columns={"Date": "ds", "total_dep_delay": "y"}, inplace=True)
+        self.prophet_df = self.df.copy()
+        self.prophet_df = self.prophet_df.resample('D').ffill()
+        self.prophet_df.reset_index(inplace=True)
+        self.prophet_df.rename(columns={"Date": "ds", "total_dep_delay": "y"}, inplace=True)
 
         # Debugging: Print date range of prophet_data
-        print("Prophet data range:", self.df['ds'].min(), "-", self.df['ds'].max())
+        print("Prophet data range:", self.prophet_df['ds'].min(), "-", self.prophet_df['ds'].max())
 
         # Prepare the training and test data
-        train_data = self.df[(self.df['ds'] <= self.train_end)]
-        test_data = self.df[(self.df['ds'] > self.train_end) & (self.df['ds'] <= self.test_end)]
+        train_data = self.prophet_df[(self.prophet_df['ds'] <= self.train_end)]
+        test_data = self.prophet_df[(self.prophet_df['ds'] > self.train_end) & (self.prophet_df['ds'] <= self.test_end)]
 
         # Debugging: Check if train and test datasets have data
         print(f"Train data range: {train_data['ds'].min()} - {train_data['ds'].max()} ({len(train_data)} rows)")

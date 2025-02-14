@@ -2,7 +2,6 @@
 import seaborn as sns
 import xgboost as xgb
 from typing import Tuple
-from sklearn.base import RegressorMixin
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
